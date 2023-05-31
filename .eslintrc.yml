@@ -1,4 +1,4 @@
-extends: "../../.eslint.base.yml"
+extends: '../../.eslint.base.yml'
 
 parserOptions:
-  project: "./tsconfig.json"
+  project: './tsconfig.json'
