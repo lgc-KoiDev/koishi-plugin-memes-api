@@ -1,4 +1,0 @@
-extends: '../../.eslint.base.yml'
-
-parserOptions:
-  project: './tsconfig.json'

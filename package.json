@@ -8,14 +8,34 @@
     "lib",
     "dist"
   ],
+  "author": "student_2333 <lgc2333@126.com>",
   "license": "MIT",
+  "homepage": "https://github.com/lgc2333/koishi-plugin-memes-api",
   "scripts": {},
   "keywords": [
     "chatbot",
     "koishi",
-    "plugin"
+    "plugin",
+    "meme",
+    "memes",
+    "meme-generator",
+    "petpet",
+    "头像表情包",
+    "表情包制作"
   ],
+  "koishi": {
+    "description": {
+      "zh": "表情包制作插件调用 API 版"
+    },
+    "locales": [
+      "zh"
+    ]
+  },
   "peerDependencies": {
     "koishi": "^4.13.0"
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "form-data": "^4.0.0"
   }
 }

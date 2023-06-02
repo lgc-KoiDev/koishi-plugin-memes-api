@@ -1,0 +1,41 @@
+commands:
+  meme:
+    description: 制作各种沙雕表情包
+  meme.list:
+    description: 表情列表
+  meme.info:
+    description: 表情详情
+  meme.generate:
+    description: 生成表情包
+
+memes-api:
+  errors:
+    no-such-meme: 表情 {0} 不存在！
+    text-over-length: 文字长度过长。
+    open-image-failed: 打开图片失败。
+    parser-exit: 参数解析错误。
+    image-number-mismatch: 输入图片数量不符，图片数量应为 {0}。
+    text-number-mismatch: 输入文字数量不符，文字数量应为 {0}。
+    text-or-name-not-enough: 文字或名字数量不足。
+    arg-parser-exit: 参数解析错误。
+    arg-model-mismatch: 请求参数错误。
+    arg-mismatch: 参数解析错误。
+    param-mismatch: 参数解析错误。
+    platform-not-supported: 平台 “{0}” 暂不支持获取头像，请使用图片输入。
+    unknown-error: 出错了，请稍后再试。
+
+  list:
+    tip: |-
+      触发方式：“关键词 + 图片/文字”
+      发送 “表情详情 + 关键词” 查看表情参数和预览
+      目前支持的表情列表：
+
+  info:
+    name: 表情名：{0}
+    keywords: 关键词：{0}
+    patterns: 正则表达式：{0}
+    image-num: 需要图片数目：{0}
+    text-num: 需要文字数目：{0}
+    default-texts: 默认文字：{0}
+    args-info: 可选参数：
+    preview: 表情预览：
