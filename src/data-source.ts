@@ -121,15 +121,16 @@ export function getRetFileByResp(resp: AxiosResponse<ArrayBuffer>): ReturnFile {
 }
 
 export class MemeSource {
-  private listPicCachePath;
-
   protected memes: Record<string, MemeInfo> = {};
 
-  constructor(protected config: Config, protected http: Quester) {
-    this.listPicCachePath = path.join(this.config.cacheDir, 'list.jpg');
-  }
+  protected cachedPreviewPath: Record<string, string> = {};
+
+  constructor(protected config: Config, protected http: Quester) {}
 
   async init() {
+    if (!this.config.keepCache && existsSync(this.config.cacheDir))
+      rm(this.config.cacheDir, { recursive: true, force: true });
+
     await this.ensurePath();
     await this.initMemeList();
   }
@@ -140,8 +141,6 @@ export class MemeSource {
   }
 
   async initMemeList() {
-    if (existsSync(this.listPicCachePath)) await rm(this.listPicCachePath);
-
     const keys = await this.getKeys();
     const tasks = keys.map(async (key) => {
       this.memes[key] = await this.getInfo(key);
@@ -149,6 +148,30 @@ export class MemeSource {
     await Promise.all(tasks);
 
     await this.renderList();
+  }
+
+  async cachePreview(key: string, file: ReturnFile): Promise<string> {
+    await this.ensurePath();
+
+    const cachePath = path.join(
+      this.config.cacheDir,
+      `preview_${key}.${file.mime.split('/')[1]}`
+    );
+    await writeFile(cachePath, Buffer.from(file.data));
+
+    return cachePath;
+  }
+
+  async getCachedPreview(key: string): Promise<ReturnFile | undefined> {
+    if (key in this.cachedPreviewPath) {
+      const cachePath = this.cachedPreviewPath[key];
+      if (existsSync(cachePath))
+        return {
+          mime: `image/${path.extname(cachePath)}`,
+          data: await readFile(cachePath),
+        };
+    }
+    return undefined;
   }
 
   getMemes(): Record<string, MemeInfo> {
@@ -172,11 +195,8 @@ export class MemeSource {
   }
 
   async renderList(): Promise<ReturnFile> {
-    if (existsSync(this.listPicCachePath))
-      return {
-        mime: 'image/jpeg',
-        data: await readFile(this.listPicCachePath),
-      };
+    const cache = await this.getCachedPreview('list');
+    if (cache) return cache;
 
     const resp = getRetFileByResp(
       await this.request({
@@ -186,9 +206,7 @@ export class MemeSource {
       })
     );
 
-    await this.ensurePath();
-    await writeFile(this.listPicCachePath, Buffer.from(resp.data));
-
+    await this.cachePreview('list', resp);
     return resp;
   }
 
@@ -206,13 +224,19 @@ export class MemeSource {
   }
 
   async renderPreview(key: string): Promise<ReturnFile> {
-    return getRetFileByResp(
+    const cache = await this.getCachedPreview(key);
+    if (cache) return cache;
+
+    const resp = getRetFileByResp(
       await this.request({
         method: 'GET',
         url: `/memes/${key}/preview`,
         responseType: 'arraybuffer',
       })
     );
+
+    await this.cachePreview(key, resp);
+    return resp;
   }
 
   async parseArgs(key: string, args: string[]): Promise<Record<string, any>> {
@@ -225,6 +249,7 @@ export class MemeSource {
     ).data;
   }
 
+  // TODO cache rendered meme
   async renderMeme(key: string, data: RenderMemeData): Promise<ReturnFile> {
     const { images, texts, args } = data;
 
