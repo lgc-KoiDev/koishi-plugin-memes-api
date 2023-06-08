@@ -14,16 +14,6 @@
 
 _✨ 表情包制作插件调用 API 版 ✨_
 
-<img src="https://img.shields.io/badge/python-3.8+-blue.svg" alt="python">
-<a href="https://pdm.fming.dev">
-  <img src="https://img.shields.io/badge/pdm-managed-blueviolet" alt="pdm-managed">
-</a>
-<a href="https://wakatime.com/badge/user/b61b0f9a-f40b-4c82-bc51-0a75c67bfccf/project/79af41ae-0173-4c1f-9db2-f87d94569c76">
-  <img src="https://wakatime.com/badge/user/b61b0f9a-f40b-4c82-bc51-0a75c67bfccf/project/79af41ae-0173-4c1f-9db2-f87d94569c76.svg" alt="wakatime">
-</a>
-
-<br />
-
 <a href="./LICENSE">
   <img src="https://img.shields.io/github/license/lgc2333/koishi-plugin-memes-api.svg" alt="license">
 </a>
@@ -33,13 +23,16 @@ _✨ 表情包制作插件调用 API 版 ✨_
 <a href="https://www.npmjs.com/package/koishi-plugin-memes-api">
   <img src="https://img.shields.io/npm/dm/koishi-plugin-memes-api" alt="pypi download">
 </a>
+<a href="https://wakatime.com/badge/user/b61b0f9a-f40b-4c82-bc51-0a75c67bfccf/project/79af41ae-0173-4c1f-9db2-f87d94569c76">
+  <img src="https://wakatime.com/badge/user/b61b0f9a-f40b-4c82-bc51-0a75c67bfccf/project/79af41ae-0173-4c1f-9db2-f87d94569c76.svg" alt="wakatime">
+</a>
 
 </div>
 
 ## 📖 介绍
 
 这是我写的第一个 Koishi 插件，还不是很熟练，  
-体验不好请见谅，大佬亲喷
+体验不好请见谅，大佬轻喷
 
 ## 🗒️ TODO
 
