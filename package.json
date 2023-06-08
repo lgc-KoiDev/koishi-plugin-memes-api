@@ -11,7 +11,9 @@
   "author": "student_2333 <lgc2333@126.com>",
   "license": "MIT",
   "homepage": "https://github.com/lgc2333/koishi-plugin-memes-api",
-  "scripts": {},
+  "scripts": {
+    "build:console": "koishi-console build"
+  },
   "keywords": [
     "chatbot",
     "koishi",
@@ -20,8 +22,11 @@
     "memes",
     "meme-generator",
     "petpet",
+    "表情包",
     "头像表情包",
-    "表情包制作"
+    "表情包制作",
+    "表情包生成",
+    "迷因"
   ],
   "koishi": {
     "description": {
