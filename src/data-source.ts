@@ -9,6 +9,41 @@ import path from 'path';
 import { Config } from './config';
 import { MemeError } from './error';
 
+// #region Response
+export interface MemeArgs {
+  name: string;
+  type: string;
+  description: string | null;
+  default: any | null;
+  enum: any[] | null;
+}
+
+export interface MemeParams {
+  min_images: number;
+  max_images: number;
+  min_texts: number;
+  max_texts: number;
+  default_texts: string[];
+  args: MemeArgs[];
+}
+
+export interface MemeInfo {
+  key: string;
+  keywords: string[];
+  patterns: string[];
+  params: MemeParams;
+}
+
+export interface ReturnFile {
+  mime: string;
+  data: Buffer;
+}
+
+export interface ReturnError {
+  detail?: string;
+}
+// #endregion
+
 // #region Request
 export type ColorType =
   | string
@@ -46,48 +81,13 @@ export interface RenderMemeList {
 }
 
 export interface RenderMemeData {
-  images?: ArrayBuffer[];
+  images?: ReturnFile[];
   texts?: string[];
   args?: Record<string, any>;
 }
 // #endregion
 
-// #region Response
-export interface MemeArgs {
-  name: string;
-  type: string;
-  description: string | null;
-  default: any | null;
-  enum: any[] | null;
-}
-
-export interface MemeParams {
-  min_images: number;
-  max_images: number;
-  min_texts: number;
-  max_texts: number;
-  default_texts: string[];
-  args: MemeArgs[];
-}
-
-export interface MemeInfo {
-  key: string;
-  keywords: string[];
-  patterns: string[];
-  params: MemeParams;
-}
-
-export interface ReturnFile {
-  mime: string;
-  data: ArrayBuffer;
-}
-
-export interface ReturnError {
-  detail?: string;
-}
-// #endregion
-
-export function getRetFileByResp(resp: AxiosResponse<ArrayBuffer>): ReturnFile {
+export function getRetFileByResp(resp: AxiosResponse<Buffer>): ReturnFile {
   return {
     mime: resp.headers['content-type'] ?? '',
     data: resp.data,
@@ -168,7 +168,8 @@ export class MemeSource {
     try {
       return this.http.axios({ ...config });
     } catch (e) {
-      throw new MemeError(e);
+      const err = new MemeError(e);
+      throw err;
     }
   }
 
@@ -232,7 +233,11 @@ export class MemeSource {
     const { images, texts, args } = data;
 
     const formData = new FormData();
-    images?.forEach((image) => formData.append('images', new Blob([image])));
+    images?.forEach((image, i) =>
+      formData.append('images', image.data, {
+        filename: `image${i}.${image.mime.slice(image.mime.indexOf('/') + 1)}`,
+      })
+    );
     texts?.forEach((text) => formData.append('texts', text));
     if (args) formData.append('args', JSON.stringify(args));
 
@@ -263,9 +268,9 @@ export class MemeSource {
     try {
       await this.parseArgs(name, ['-h']);
     } catch (e) {
-      if (!(e instanceof MemeError)) throw e;
-      if (e.type === 'arg-parser-exit') {
-        const data = (e.response?.data as ReturnError)?.detail;
+      const err = e instanceof MemeError ? e : new MemeError(e);
+      if (err.type === 'arg-parser-exit') {
+        const data = (err.response?.data as ReturnError)?.detail;
         if (data) return parseHelp(data);
       }
     }

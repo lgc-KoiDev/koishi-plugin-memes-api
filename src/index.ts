@@ -1,8 +1,9 @@
 import { Context, Session, escapeRegExp, h } from 'koishi';
+// import { writeFile } from 'fs/promises';
 
 import { Config } from './config';
 import { logger } from './const';
-import { MemeSource, returnFileToElem } from './data-source';
+import { MemeSource, getRetFileByResp, returnFileToElem } from './data-source';
 import { MemeError, formatError } from './error';
 import { extractPlaintext, formatRange, splitArg } from './utils';
 
@@ -10,8 +11,8 @@ export { name } from './const';
 export { Config };
 
 export const usage = `
-Tip:<br />
-如果插件没有注册 \`meme\` 指令，请检查你的请求设置是否正确，以及 \`memes-generator\` 是否正常部署。<br />
+Tip:  
+如果插件没有注册 \`meme\` 指令，请检查你的请求设置是否正确，以及 \`memes-generator\` 是否正常部署。  
 相关错误信息可以在日志中查看。
 
 如果想要刷新表情列表，请重载本插件。
@@ -46,12 +47,9 @@ export async function apply(ctx: Context, config: Config) {
 
   ctx.command('meme').alias('memes');
 
-  ctx
+  const cmdList = ctx
     .command('meme.list')
     .alias('memes.list')
-    .alias('表情包制作')
-    .alias('头像表情包')
-    .alias('文字表情包')
     .action(
       wrapError(async () => [
         h.i18n('memes-api.list.tip'),
@@ -59,12 +57,9 @@ export async function apply(ctx: Context, config: Config) {
       ])
     );
 
-  ctx
+  const cmdInfo = ctx
     .command('meme.info <name:string>')
     .alias('memes.info')
-    .alias('表情详情')
-    .alias('表情帮助')
-    .alias('表情示例')
     .action(
       wrapError(async (_, name) => {
         const meme = source.getMemeByKeyword(name);
@@ -154,14 +149,18 @@ export async function apply(ctx: Context, config: Config) {
       const texts: string[] = [];
       const args: Record<string, string> = {};
 
+      let selfLen = 0;
+
       if (matched) {
         texts.push(...matched);
       } else {
         const splitted = splitArg(
           extractPlaintext(session.elements).replace(prefix, '')
         );
+        const realArgs = splitted.filter((x) => x !== '自己');
+        selfLen = realArgs.length;
 
-        const parsedParams = await source.parseArgs(key, splitted);
+        const parsedParams = await source.parseArgs(key, realArgs);
         texts.push(...parsedParams.texts);
         delete parsedParams.texts;
 
@@ -170,27 +169,31 @@ export async function apply(ctx: Context, config: Config) {
 
       if (session.quote?.elements) {
         imageUrls.push(
-          ...session.quote.elements.map((x) => x.attrs.url as string)
+          ...session.quote.elements
+            .filter((x) => x.type === 'image')
+            .map((x) => x.attrs.url as string)
         );
       }
-      for (const ele of session.elements) {
+      for (const ele of session.elements.slice(1)) {
+        // 需要忽略回复转化为的 at，第一个不是 at 就是指令，可以放心忽略（应该
         if (ele.type === 'image') imageUrls.push(ele.attrs.url as string);
-        if (ele.type === 'at') {
-        }
+        if (ele.type === 'at')
+          return h.i18n('memes-api.errors.at-not-supported');
       }
 
       const senderAvatar = session.author?.avatar;
       if (senderAvatar) {
+        if (selfLen) {
+          imageUrls.push(...Array(selfLen).fill(senderAvatar));
+        }
+
         if (
           (meme.params.min_images === 2 && imageUrls.length === 1) ||
-          !imageUrls.length
+          (!imageUrls.length && meme.params.min_images === 1)
         )
           imageUrls.unshift(senderAvatar);
       }
 
-      // #endregion
-
-      // #region validate args
       if (!texts.length) texts.push(...params.default_texts);
 
       if (
@@ -201,28 +204,33 @@ export async function apply(ctx: Context, config: Config) {
 
       if (texts.length < params.min_texts || texts.length > params.max_texts)
         return formatError('text-number-mismatch', name, params);
-      // #endregion
 
-      // #region generate images
-      const images = (
-        await Promise.all(
-          imageUrls.map((url) =>
-            ctx.http.axios({ url, responseType: 'arraybuffer' })
+      let images;
+      try {
+        images = (
+          await Promise.all(
+            imageUrls.map((url) =>
+              ctx.http.axios({ url, responseType: 'arraybuffer' })
+            )
           )
-        )
-      ).map((x) => x.data);
+        ).map(getRetFileByResp);
+      } catch (e) {
+        logger.error(e);
+        return h.i18n('memes-api.errors.download-avatar-failed');
+      }
 
       let img;
       try {
         img = await source.renderMeme(key, { images, texts, args });
       } catch (e) {
         // 这个时候出错可能需要给格式化函数传参，单独 catch 一下
-        if (!(e instanceof MemeError)) throw e;
-        logger.error(e);
-        return e.format(name, params);
+        const err = e instanceof MemeError ? e : new MemeError(e);
+        logger.error(err);
+        return err.format(name, params);
       }
       // #endregion
 
+      // await writeFile('meme.png', img.data, { encoding: 'binary' });
       return returnFileToElem(img);
     }
   );
@@ -230,48 +238,52 @@ export async function apply(ctx: Context, config: Config) {
   ctx
     .command('meme.generate')
     .alias('memes.generate <name:string>')
-    .action(({ session }, name) =>
-      session && name
-        ? generateMeme(
-            session,
-            name,
-            session.content.slice(
-              0,
-              session.content.indexOf(name) + name.length
-            )
-          )
-        : undefined
-    );
+    .action(({ session }, name) => {
+      if (session && session.elements && name) {
+        const plainTxt = extractPlaintext(session.elements);
+        const pfx = plainTxt.slice(0, plainTxt.indexOf(name) + name.length);
+        return generateMeme(session, name, pfx);
+      }
+      return undefined;
+    });
 
-  ctx.middleware(async (session, next) => {
-    const { prefix } = ctx.root.config ?? '';
-    const prefixes = prefix instanceof Array ? prefix : [prefix as string];
+  if (config.enableShortcut) {
+    cmdList.alias('表情包制作').alias('头像表情包').alias('文字表情包');
 
-    const content = session.content.trim();
+    cmdInfo.alias('表情详情').alias('表情帮助').alias('表情示例');
 
-    for (const meme of Object.values(source.getMemes())) {
-      const { key, keywords, patterns } = meme;
+    ctx.middleware(async (session, next) => {
+      if (!session.elements) return undefined;
 
-      for (const pfx of prefixes) {
-        for (const keyword of keywords) {
-          const s = `${pfx}${keyword}`;
-          if (content.startsWith(s)) return generateMeme(session, key, s);
+      const { prefix } = ctx.root.config ?? '';
+      const prefixes = prefix instanceof Array ? prefix : [prefix as string];
+
+      const content = extractPlaintext(session.elements).trim();
+
+      for (const meme of Object.values(source.getMemes())) {
+        const { key, keywords, patterns } = meme;
+
+        for (const pfx of prefixes) {
+          for (const keyword of keywords) {
+            const s = `${pfx}${keyword}`;
+            if (content.startsWith(s)) return generateMeme(session, key, s);
+          }
+        }
+
+        const prefixRegex = prefixes.map(escapeRegExp).join('|');
+        for (const pattern of patterns) {
+          const match = content.match(
+            new RegExp(`(${prefixRegex})${pattern}`, 'i')
+          );
+          if (match) {
+            return generateMeme(session, key, '', match.slice(2));
+          }
         }
       }
 
-      const prefixRegex = prefixes.map(escapeRegExp).join('|');
-      for (const pattern of patterns) {
-        const match = content.match(
-          new RegExp(`(${prefixRegex})${pattern}`, 'i')
-        );
-        if (match) {
-          return generateMeme(session, key, '', match.slice(2));
-        }
-      }
-    }
-
-    return next();
-  });
+      return next();
+    });
+  }
 
   logger.info(
     `Plugin setup successfully, ` +

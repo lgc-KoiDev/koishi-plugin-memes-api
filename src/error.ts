@@ -69,7 +69,7 @@ export class MemeError extends Error {
   get message(): string {
     return this.code
       ? `[${this.code}] ${this.type}`
-      : `${this.type} (${this.message})`;
+      : `${getErrorType()} (${this.error})`;
   }
 
   get code(): number | undefined {

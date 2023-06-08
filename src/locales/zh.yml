@@ -18,14 +18,16 @@ memes-api:
     text-number-mismatch: 输入文字数量不符，文字数量应为 {0}。
     arg-parser-exit: 参数解析错误。
     arg-model-mismatch: 请求参数错误。
-    arg-mismatch: 参数解析错误。
-    param-mismatch: 参数解析错误。
+    arg-mismatch: 传入参数错误，请检查。
+    param-mismatch: 传入参数错误，请检查。
 
-    unknown-error: 出现未知错误，请稍后再试。
-    unexpected-error: 出现意外错误，请稍后再试。
+    unknown-error: 出现未知错误。
+    unexpected-error: 出现意外错误。
 
     text-or-name-not-enough: 文字或名字数量不足。
     platform-not-supported: 平台 “{0}” 暂不支持获取头像，请使用图片输入。
+    download-avatar-failed: 下载头像失败。
+    at-not-supported: 暂不支持 @ 某人来引用 TA 的头像，请见谅……
 
   list:
     tip: |-
