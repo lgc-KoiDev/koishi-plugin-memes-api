@@ -3,6 +3,7 @@ import { Quester, h } from 'koishi';
 import type { AxiosResponse } from 'axios';
 
 import type { MemeParams } from './data-source';
+import { formatRange } from './utils';
 
 export type RequestErrorTypes =
   | 'no-such-meme'
@@ -51,9 +52,9 @@ export function formatError(
   if (name && type === 'no-such-meme') args.push(name);
   else if (params) {
     if (type === 'image-number-mismatch')
-      args.push(params.min_images, params.max_images);
+      args.push(formatRange(params.min_images, params.max_images));
     else if (type === 'text-number-mismatch')
-      args.push(params.min_texts, params.max_texts);
+      args.push(formatRange(params.min_texts, params.max_texts));
   }
   return h.i18n(`memes-api.errors.${type}`, args);
 }
@@ -61,11 +62,14 @@ export function formatError(
 export class MemeError extends Error {
   constructor(private error: unknown) {
     super();
+    this.name = 'MemeError';
     if (error instanceof MemeError) this.error = error.error;
   }
 
   get message(): string {
-    return `[${this.code}] ${this.type}`;
+    return this.code
+      ? `[${this.code}] ${this.type}`
+      : `${this.type} (${this.message})`;
   }
 
   get code(): number | undefined {

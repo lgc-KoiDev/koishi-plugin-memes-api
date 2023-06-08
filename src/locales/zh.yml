@@ -14,8 +14,8 @@ memes-api:
     text-over-length: 文字长度过长。
     open-image-failed: 打开图片失败。
     parser-exit: 参数解析错误。
-    image-number-mismatch: 输入图片数量不符，图片数量应为 {0} ~ {1}。
-    text-number-mismatch: 输入文字数量不符，文字数量应为 {0} ~ {1}。
+    image-number-mismatch: 输入图片数量不符，图片数量应为 {0}。
+    text-number-mismatch: 输入文字数量不符，文字数量应为 {0}。
     arg-parser-exit: 参数解析错误。
     arg-model-mismatch: 请求参数错误。
     arg-mismatch: 参数解析错误。
