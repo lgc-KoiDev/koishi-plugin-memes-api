@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<a href="https://v2.nonebot.dev/store">
+<a href="https://koishi.chat/zh-CN/market/">
   <img src="https://raw.githubusercontent.com/lgc2333/koishi-workspace/master/readme/koishi-plugin.png" width="180" height="180" alt="NoneBotPluginLogo">
 </a>
 
