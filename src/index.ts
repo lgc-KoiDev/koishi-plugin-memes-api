@@ -52,7 +52,11 @@ export async function apply(ctx: Context, config: Config) {
     .alias('memes.list')
     .action(
       wrapError(async () => [
-        h.i18n('memes-api.list.tip'),
+        h.i18n(
+          config.enableShortcut
+            ? 'memes-api.list.tip'
+            : 'memes-api.list.tip-no-shortcut'
+        ),
         returnFileToElem(await source.renderList()),
       ])
     );

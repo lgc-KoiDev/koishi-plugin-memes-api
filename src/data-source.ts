@@ -165,12 +165,12 @@ export class MemeSource {
   request<T = any, D = any>(
     config: AxiosRequestConfig<D> = {}
   ): Promise<AxiosResponse<T, D>> {
-    try {
-      return this.http.axios({ ...config });
-    } catch (e) {
-      const err = new MemeError(e);
-      throw err;
-    }
+    // try {
+    return this.http.axios({ ...config });
+    // } catch (e) {
+    //   const err = new MemeError(e);
+    //   throw err;
+    // }
   }
 
   async renderList(): Promise<ReturnFile> {
