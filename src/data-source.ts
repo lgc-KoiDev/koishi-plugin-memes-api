@@ -162,15 +162,14 @@ export class MemeSource {
     return undefined;
   }
 
-  request<T = any, D = any>(
+  async request<T = any, D = any>(
     config: AxiosRequestConfig<D> = {}
   ): Promise<AxiosResponse<T, D>> {
-    // try {
-    return this.http.axios({ ...config });
-    // } catch (e) {
-    //   const err = new MemeError(e);
-    //   throw err;
-    // }
+    try {
+      return await this.http.axios({ ...config });
+    } catch (e) {
+      throw new MemeError(e);
+    }
   }
 
   async renderList(): Promise<ReturnFile> {
@@ -268,9 +267,9 @@ export class MemeSource {
     try {
       await this.parseArgs(name, ['-h']);
     } catch (e) {
-      const err = e instanceof MemeError ? e : new MemeError(e);
-      if (err.type === 'arg-parser-exit') {
-        const data = (err.response?.data as ReturnError)?.detail;
+      if (!(e instanceof MemeError)) throw e;
+      if (e.type === 'arg-parser-exit') {
+        const data = (e.response?.data as ReturnError)?.detail;
         if (data) return parseHelp(data);
       }
     }

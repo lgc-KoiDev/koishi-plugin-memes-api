@@ -11,10 +11,10 @@ export { name } from './const';
 export { Config };
 
 export const usage = `
-Tip:  
-如果插件没有注册 \`meme\` 指令，请检查你的请求设置是否正确，以及 \`memes-generator\` 是否正常部署。  
-相关错误信息可以在日志中查看。
+如果插件没有注册 \`meme\` 指令，请检查你的请求设置是否正确，以及 \`meme-generator\` 是否正常部署。  
+[点我跳转 meme-generator 部署文档](https://github.com/MeetWq/meme-generator#%E6%9C%AC%E5%9C%B0%E5%AE%89%E8%A3%85)
 
+如果插件报错，相关错误信息可以在日志中查看。  
 如果想要刷新表情列表，请重载本插件。
 `.trim();
 
@@ -33,7 +33,7 @@ function wrapError<TA extends any[], TR>(
 }
 
 export async function apply(ctx: Context, config: Config) {
-  ctx.i18n.define('zh', require('./locales/zh.yml'));
+  ctx.i18n.define('zh', require('./locales/zh-CN.yml'));
 
   const http = ctx.http.extend(config.requestConfig);
   const source = new MemeSource(config, http);
@@ -228,9 +228,9 @@ export async function apply(ctx: Context, config: Config) {
         img = await source.renderMeme(key, { images, texts, args });
       } catch (e) {
         // 这个时候出错可能需要给格式化函数传参，单独 catch 一下
-        const err = e instanceof MemeError ? e : new MemeError(e);
-        logger.error(err);
-        return err.format(name, params);
+        if (!(e instanceof MemeError)) throw e;
+        logger.error(e);
+        return e.format(name, params);
       }
       // #endregion
 

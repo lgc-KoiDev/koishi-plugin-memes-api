@@ -1,6 +1,8 @@
 commands:
   meme:
-    description: 制作各种沙雕表情包
+    description: |-
+      制作各种沙雕表情包
+      使用指令 “meme list” 查看表情列表
   meme.list:
     description: 表情列表
   meme.info:
