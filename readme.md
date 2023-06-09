@@ -31,8 +31,7 @@ _✨ 表情包制作插件调用 API 版 ✨_
 
 ## 📖 介绍
 
-这是我写的第一个 Koishi 插件，还不是很熟练，  
-体验不好请见谅，大佬轻喷
+这是我写的第一个 Koishi 插件，还不是很熟练，代码屎山或者体验不好请见谅，大佬轻喷
 
 ## 📦 配置 & 使用
 
@@ -40,9 +39,27 @@ _✨ 表情包制作插件调用 API 版 ✨_
 
 ## 🗒️ TODO
 
-- [ ] 支持 AT 获取头像
+~~_虽然但是，写在这里的不一定会做，我是大懒逼_~~
+
+- [ ] 支持 AT 获取头像（目前仅支持 OneBot (QQ) 平台）
 - [ ] 缓存渲好的 Meme
 - [ ] 内置 `meme-generator`
+
+## 💡 鸣谢
+
+### [meme-generator](https://github.com/MeetWq/meme-generator)
+
+- 本插件依赖的项目  
+  WQ 佬牛逼！
+
+### [NoneBot](https://nonebot.dev/)
+
+- **我们的 NoneBot 真是太强啦！**  
+  ![太强啦](https://s2.loli.net/2023/02/06/Hfwj67QoVAatexN.png)
+
+### Koishi 开发群的各位大佬
+
+- 群里的各位大佬们充分体现了我是大废物的事实（悲
 
 ## 📞 联系
 
@@ -50,12 +67,6 @@ QQ：3076823485
 Telegram：[@lgc2333](https://t.me/lgc2333)  
 吹水群：[1105946125](https://jq.qq.com/?_wv=1027&k=Z3n1MpEp)  
 邮箱：<lgc2333@126.com>
-
-## 💡 鸣谢
-
-### Koishi 开发群的各位大佬！
-
-- 群里的各位大佬们充分体现了我就是大废物的事实
 
 ## 💰 赞助
 
@@ -70,6 +81,11 @@ Telegram：[@lgc2333](https://t.me/lgc2333)
   </details>
 
 ## 📝 更新日志
+
+### 0.1.3
+
+- 支持 OneBot 平台的 AT 获取头像
+- 修复一些问题
 
 ### 0.1.1 ~ 0.1.2
 

@@ -234,7 +234,7 @@ export class MemeSource {
     const formData = new FormData();
     images?.forEach((image, i) =>
       formData.append('images', image.data, {
-        filename: `image${i}.${image.mime.slice(image.mime.indexOf('/') + 1)}`,
+        filename: `image${i}.${image.mime.split('/')[1]}`,
       })
     );
     texts?.forEach((text) => formData.append('texts', text));

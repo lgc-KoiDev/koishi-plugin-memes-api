@@ -29,7 +29,6 @@ memes-api:
     text-or-name-not-enough: 文字或名字数量不足。
     platform-not-supported: 平台 “{0}” 暂不支持获取头像，请使用图片输入。
     download-avatar-failed: 下载头像失败。
-    at-not-supported: 暂不支持 @ 某人来引用 TA 的头像，请见谅……
 
   list:
     tip: |-

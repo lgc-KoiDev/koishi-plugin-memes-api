@@ -1,4 +1,4 @@
-import { Context, h } from 'koishi';
+import { Context, Session, h } from 'koishi';
 
 export function extractPlaintext(elements: h[]): string {
   return elements
@@ -58,4 +58,14 @@ export function splitArg(text: string): string[] {
   if (buffer.length) args.push(buffer.join(''));
 
   return args.map((x) => x.trim()).filter((x) => x.length);
+}
+
+export function getAvatarUrlFromID(session: Session, user: string): string {
+  const { platform } = session;
+  switch (platform) {
+    case 'onebot':
+      return `https://q1.qlogo.cn/g?b=qq&nk=${user}&s=640`;
+    default:
+      throw new TypeError(`Unsupported platform: ${platform}`);
+  }
 }

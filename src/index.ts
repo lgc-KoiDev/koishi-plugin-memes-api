@@ -1,11 +1,20 @@
 import { Context, Session, escapeRegExp, h } from 'koishi';
-// import { writeFile } from 'fs/promises';
 
 import { Config } from './config';
 import { logger } from './const';
-import { MemeSource, getRetFileByResp, returnFileToElem } from './data-source';
+import {
+  MemeSource,
+  ReturnFile,
+  getRetFileByResp,
+  returnFileToElem,
+} from './data-source';
 import { MemeError, formatError } from './error';
-import { extractPlaintext, formatRange, splitArg } from './utils';
+import {
+  extractPlaintext,
+  formatRange,
+  getAvatarUrlFromID,
+  splitArg,
+} from './utils';
 
 export { name } from './const';
 export { Config };
@@ -148,7 +157,6 @@ export async function apply(ctx: Context, config: Config) {
       if (!meme) return formatError('no-such-meme', name);
       const { key, params } = meme;
 
-      // #region parse args
       const imageUrls: string[] = [];
       const texts: string[] = [];
       const args: Record<string, string> = {};
@@ -162,7 +170,7 @@ export async function apply(ctx: Context, config: Config) {
           extractPlaintext(session.elements).replace(prefix, '')
         );
         const realArgs = splitted.filter((x) => x !== '自己');
-        selfLen = realArgs.length;
+        selfLen = splitted.length - realArgs.length;
 
         const parsedParams = await source.parseArgs(key, realArgs);
         texts.push(...parsedParams.texts);
@@ -181,8 +189,15 @@ export async function apply(ctx: Context, config: Config) {
       for (const ele of session.elements.slice(1)) {
         // 需要忽略回复转化为的 at，第一个不是 at 就是指令，可以放心忽略（应该
         if (ele.type === 'image') imageUrls.push(ele.attrs.url as string);
-        if (ele.type === 'at')
-          return h.i18n('memes-api.errors.at-not-supported');
+        if (ele.type === 'at') {
+          try {
+            imageUrls.push(getAvatarUrlFromID(session, ele.attrs.id));
+          } catch {
+            return h.i18n('memes-api.errors.platform-not-supported', [
+              session.platform,
+            ]);
+          }
+        }
       }
 
       const senderAvatar = session.author?.avatar;
@@ -196,6 +211,10 @@ export async function apply(ctx: Context, config: Config) {
           (!imageUrls.length && meme.params.min_images === 1)
         )
           imageUrls.unshift(senderAvatar);
+      } else if (selfLen) {
+        return h.i18n('memes-api.errors.platform-not-supported', [
+          session.platform,
+        ]);
       }
 
       if (!texts.length) texts.push(...params.default_texts);
@@ -209,7 +228,7 @@ export async function apply(ctx: Context, config: Config) {
       if (texts.length < params.min_texts || texts.length > params.max_texts)
         return formatError('text-number-mismatch', name, params);
 
-      let images;
+      let images: ReturnFile[];
       try {
         images = (
           await Promise.all(
@@ -232,16 +251,14 @@ export async function apply(ctx: Context, config: Config) {
         logger.error(e);
         return e.format(name, params);
       }
-      // #endregion
 
-      // await writeFile('meme.png', img.data, { encoding: 'binary' });
       return returnFileToElem(img);
     }
   );
 
   ctx
-    .command('meme.generate')
-    .alias('memes.generate <name:string>')
+    .command('meme.generate <name:string>')
+    .alias('memes.generate')
     .action(({ session }, name) => {
       if (session && session.elements && name) {
         const plainTxt = extractPlaintext(session.elements);
