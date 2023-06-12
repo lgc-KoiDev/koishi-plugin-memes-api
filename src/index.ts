@@ -42,7 +42,7 @@ function wrapError<TA extends any[], TR>(
 }
 
 export async function apply(ctx: Context, config: Config) {
-  ctx.i18n.define('zh', require('./locales/zh-CN.yml'));
+  ctx.i18n.define('zh', require('./locales/zh-CN'));
 
   const http = ctx.http.extend(config.requestConfig);
   const source = new MemeSource(config, http);
