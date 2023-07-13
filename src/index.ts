@@ -55,11 +55,10 @@ export async function apply(ctx: Context, config: Config) {
     return;
   }
 
-  const command = ctx.command('meme').alias('memes').usage('头像表情包');
+  const command = ctx.command('meme').alias('memes');
 
   const cmdList = command
     .subcommand('.list')
-    .usage('获取表情列表')
     .action(
       wrapError(async () => [
         h.i18n(
@@ -71,79 +70,76 @@ export async function apply(ctx: Context, config: Config) {
       ])
     );
 
-  const cmdInfo = command
-    .subcommand('.info <name:string>')
-    .usage('获取表情详情')
-    .action(
-      wrapError(async (_, name) => {
-        const meme = source.getMemeByKeyword(name);
-        if (!meme) return formatError('no-such-meme');
+  const cmdInfo = command.subcommand('.info <name:string>').action(
+    wrapError(async (_, name) => {
+      const meme = source.getMemeByKeyword(name);
+      if (!meme) return formatError('no-such-meme');
 
-        const {
-          key,
-          keywords,
-          patterns,
-          params: {
-            max_images,
-            max_texts,
-            min_images,
-            min_texts,
-            default_texts,
-            args,
-          },
-        } = meme;
+      const {
+        key,
+        keywords,
+        patterns,
+        params: {
+          max_images,
+          max_texts,
+          min_images,
+          min_texts,
+          default_texts,
+          args,
+        },
+      } = meme;
 
-        const msg: any[] = [];
+      const msg: any[] = [];
 
-        msg.push(h.i18n('memes-api.info.name', [key]));
+      msg.push(h.i18n('memes-api.info.name', [key]));
+      msg.push('\n');
+
+      msg.push(h.i18n('memes-api.info.keywords', [keywords.join(', ')]));
+      msg.push('\n');
+
+      if (patterns.length) {
+        msg.push(h.i18n('memes-api.info.patterns', [patterns.join(', ')]));
         msg.push('\n');
+      }
 
-        msg.push(h.i18n('memes-api.info.keywords', [keywords.join(', ')]));
-        msg.push('\n');
+      msg.push(
+        h.i18n('memes-api.info.image-num', [
+          formatRange(min_images, max_images),
+        ])
+      );
+      msg.push('\n');
 
-        if (patterns.length) {
-          msg.push(h.i18n('memes-api.info.patterns', [patterns.join(', ')]));
-          msg.push('\n');
-        }
+      msg.push(
+        h.i18n('memes-api.info.text-num', [formatRange(min_texts, max_texts)])
+      );
+      msg.push('\n');
 
+      if (default_texts.length) {
         msg.push(
-          h.i18n('memes-api.info.image-num', [
-            formatRange(min_images, max_images),
+          h.i18n('memes-api.info.default-texts', [
+            default_texts.map((x) => `"${x}"`).join(', '),
           ])
         );
         msg.push('\n');
+      }
 
-        msg.push(
-          h.i18n('memes-api.info.text-num', [formatRange(min_texts, max_texts)])
-        );
-        msg.push('\n');
-
-        if (default_texts.length) {
-          msg.push(
-            h.i18n('memes-api.info.default-texts', [
-              default_texts.map((x) => `"${x}"`).join(', '),
-            ])
-          );
+      if (args.length) {
+        const help = await source.getHelpText(meme.key);
+        if (help) {
+          msg.push(h.i18n('memes-api.info.args-info', [help]));
           msg.push('\n');
         }
+      }
 
-        if (args.length) {
-          const help = await source.getHelpText(meme.key);
-          if (help) {
-            msg.push(h.i18n('memes-api.info.args-info', [help]));
-            msg.push('\n');
-          }
-        }
+      msg.push(
+        h.i18n('memes-api.info.preview', [
+          returnFileToElem(await source.renderPreview(meme.key)),
+        ])
+      );
 
-        msg.push(
-          h.i18n('memes-api.info.preview', [
-            returnFileToElem(await source.renderPreview(meme.key)),
-          ])
-        );
-
-        return msg;
-      })
-    );
+      return msg;
+    })
+  );
 
   // TODO 重构屎山，用 `h.parse` 解析消息元素
   const generateMeme = wrapError(
@@ -155,8 +151,12 @@ export async function apply(ctx: Context, config: Config) {
     ) => {
       if (!session.elements) return undefined;
 
-      const meme = source.getMemeByKeyword(name);
-      if (!meme) return formatError('no-such-meme', name);
+      const isIndex = name.match(/[0-9]+/);
+      const meme = isIndex
+        ? source.memeList[parseInt(name, 10) - 1]
+        : source.getMemeByKeyword(name);
+      if (!meme)
+        return formatError(isIndex ? 'no-such-index' : 'no-such-meme', name);
       const { key, params } = meme;
 
       const imageUrls: string[] = [];
@@ -232,16 +232,10 @@ export async function apply(ctx: Context, config: Config) {
 
       let images: ReturnFile[];
       try {
-        images = (
-          await Promise.all(
-            imageUrls.map((url) =>
-              ctx.http.axios({
-                url,
-                responseType: 'arraybuffer',
-              })
-            )
-          )
-        ).map(getRetFileByResp);
+        const tasks = imageUrls.map((url) =>
+          ctx.http.axios({ url, responseType: 'arraybuffer' })
+        );
+        images = (await Promise.all(tasks)).map(getRetFileByResp);
       } catch (e) {
         logger.error(e);
         return h.i18n('memes-api.errors.download-avatar-failed');
@@ -261,17 +255,14 @@ export async function apply(ctx: Context, config: Config) {
     }
   );
 
-  command
-    .subcommand('.generate <name:string>')
-    .usage('生成表情包')
-    .action(({ session }, name) => {
-      if (session && session.elements && name) {
-        const plainTxt = extractPlaintext(session.elements);
-        const pfx = plainTxt.slice(0, plainTxt.indexOf(name) + name.length);
-        return generateMeme(session, name, pfx);
-      }
-      return undefined;
-    });
+  command.subcommand('.generate <name:string>').action(({ session }, name) => {
+    if (session && session.elements && name) {
+      const plainTxt = extractPlaintext(session.elements);
+      const pfx = plainTxt.slice(0, plainTxt.indexOf(name) + name.length);
+      return generateMeme(session, name, pfx);
+    }
+    return undefined;
+  });
 
   if (config.enableShortcut) {
     cmdList.alias('表情包制作').alias('头像表情包').alias('文字表情包');

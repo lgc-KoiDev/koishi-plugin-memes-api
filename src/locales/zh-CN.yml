@@ -29,6 +29,7 @@ memes-api:
     text-or-name-not-enough: 文字或名字数量不足。
     platform-not-supported: 平台 “{0}” 暂不支持获取头像，请使用图片输入。
     download-avatar-failed: 下载头像失败。
+    no-such-index: 不存在序号为 {0} 的表情。
 
   list:
     tip: |-
@@ -36,7 +37,7 @@ memes-api:
       发送 “表情详情 + 关键词” 查看表情参数和预览
       目前支持的表情列表：
     tip-no-shortcut: |-
-      触发指令：“meme generate <关键词> [...图片/文字]”
+      触发指令：“meme generate <关键词/序号> [...图片/文字]”
       发送指令 “meme info <关键词>” 查看表情参数和预览
       目前支持的表情列表：
 

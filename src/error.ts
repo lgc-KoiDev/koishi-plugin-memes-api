@@ -20,6 +20,14 @@ export type RequestErrorTypes =
   | 'unknown-error'
   | 'unexpected-error';
 
+export type OtherErrorTypes =
+  | 'text-or-name-not-enough'
+  | 'platform-not-supported'
+  | 'download-avatar-failed'
+  | 'no-such-index';
+
+export type ErrorTypes = RequestErrorTypes | OtherErrorTypes;
+
 export function getErrorType(errorCode?: number): RequestErrorTypes {
   if (!errorCode) return 'unexpected-error';
 
@@ -44,7 +52,7 @@ export function getErrorType(errorCode?: number): RequestErrorTypes {
 }
 
 export function formatError(
-  type: RequestErrorTypes,
+  type: ErrorTypes,
   name?: string,
   params?: MemeParams
 ): h {

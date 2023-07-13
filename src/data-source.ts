@@ -8,6 +8,7 @@ import path from 'path';
 
 import { Config } from './config';
 import { MemeError } from './error';
+import { logger } from './const';
 
 // #region Response
 export interface MemeArgs {
@@ -32,6 +33,10 @@ export interface MemeInfo {
   keywords: string[];
   patterns: string[];
   params: MemeParams;
+}
+
+export interface MemeInfoWithName extends MemeInfo {
+  name: string;
 }
 
 export interface ReturnFile {
@@ -95,26 +100,49 @@ export function getRetFileByResp(resp: AxiosResponse<Buffer>): ReturnFile {
 }
 
 export class MemeSource {
-  private _memes: Record<string, MemeInfo> = {};
+  protected inited = false;
 
-  protected cachedPreviewPath: Record<string, string> = {};
+  private _memeList: MemeInfoWithName[] = [];
 
-  constructor(protected config: Config, protected http: Quester) {}
+  protected previewCacheJsonPath: string;
+
+  constructor(protected config: Config, protected http: Quester) {
+    this.previewCacheJsonPath = path.join(
+      this.config.cacheDir,
+      `preview_path.json`
+    );
+  }
 
   get memes(): Record<string, MemeInfo> {
-    return { ...this._memes };
+    return Object.fromEntries(this._memeList.map((meme) => [meme.key, meme]));
+  }
+
+  get keys(): string[] {
+    return this._memeList.map((meme) => meme.key);
+  }
+
+  get memeList(): MemeInfoWithName[] {
+    return [...this._memeList];
   }
 
   get count(): number {
-    return Object.keys(this._memes).length;
+    return this._memeList.length;
   }
 
   async init() {
+    this.inited = false;
+
+    if (this.inited) {
+      this._memeList.length = 0;
+    }
+
     if (!this.config.keepCache && existsSync(this.config.cacheDir))
       rm(this.config.cacheDir, { recursive: true, force: true });
 
     await this.ensurePath();
     await this.initMemeList();
+
+    this.inited = true;
   }
 
   async ensurePath() {
@@ -122,14 +150,36 @@ export class MemeSource {
       await mkdir(this.config.cacheDir, { recursive: true });
   }
 
-  async initMemeList() {
+  async checkInit() {
+    if (!this.inited) throw new Error('MemeSource not inited');
+  }
+
+  protected async initMemeList() {
     const keys = await this.getKeys();
+
     const tasks = keys.map(async (key) => {
-      this._memes[key] = await this.getInfo(key);
+      this._memeList.push({ name: key, ...(await this.getInfo(key)) });
     });
     await Promise.all(tasks);
+    this._memeList.sort((a, b) => a.name.localeCompare(b.name));
 
-    await this.renderList();
+    this.renderList().catch(logger.error); // 故意没有 await 的
+  }
+
+  async readCachedPreviewPath(): Promise<Record<string, string>> {
+    return existsSync(this.previewCacheJsonPath)
+      ? JSON.parse(await readFile(this.previewCacheJsonPath, 'utf-8'))
+      : {};
+  }
+
+  async writeCachedPreviewPath(key: string, cachePath: string) {
+    await writeFile(
+      this.previewCacheJsonPath,
+      JSON.stringify({
+        ...(await this.readCachedPreviewPath()),
+        [key]: cachePath,
+      })
+    );
   }
 
   async cachePreview(key: string, file: ReturnFile): Promise<string> {
@@ -140,29 +190,29 @@ export class MemeSource {
       `preview_${key}.${file.mime.split('/')[1]}`
     );
     await writeFile(cachePath, Buffer.from(file.data));
+    await this.writeCachedPreviewPath(key, cachePath);
 
     return cachePath;
   }
 
   async getCachedPreview(key: string): Promise<ReturnFile | undefined> {
-    if (key in this.cachedPreviewPath) {
-      const cachePath = this.cachedPreviewPath[key];
+    const cachedPreviewPath = await this.readCachedPreviewPath();
+
+    if (key in cachedPreviewPath) {
+      const cachePath = cachedPreviewPath[key];
       if (existsSync(cachePath))
         return {
           mime: `image/${path.extname(cachePath)}`,
           data: await readFile(cachePath),
         };
     }
+
     return undefined;
   }
 
   getMemeByKeyword(word: string): MemeInfo | undefined {
-    if (word in this._memes) return this._memes[word];
-
-    for (const meme of Object.values(this._memes)) {
-      if (meme.keywords.includes(word)) return meme;
-    }
-
+    for (const meme of this._memeList)
+      if (word === meme.key || meme.keywords.includes(word)) return meme;
     return undefined;
   }
 
@@ -185,6 +235,7 @@ export class MemeSource {
         method: 'POST',
         url: '/memes/render_list',
         responseType: 'arraybuffer',
+        data: { meme_list: this.keys.map((key) => ({ meme_key: key })) },
       })
     );
 
