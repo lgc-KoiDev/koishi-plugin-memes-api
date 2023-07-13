@@ -72,8 +72,10 @@ export async function apply(ctx: Context, config: Config) {
 
   const cmdInfo = command.subcommand('.info <name:string>').action(
     wrapError(async (_, name) => {
-      const meme = source.getMemeByKeyword(name);
-      if (!meme) return formatError('no-such-meme');
+      const isIndex = !!name.match(/[0-9]+/);
+      const meme = source.getMemeByKeywordOrIndex(name, isIndex);
+      if (!meme)
+        return formatError(isIndex ? 'no-such-index' : 'no-such-meme', name);
 
       const {
         key,
@@ -151,10 +153,8 @@ export async function apply(ctx: Context, config: Config) {
     ) => {
       if (!session.elements) return undefined;
 
-      const isIndex = name.match(/[0-9]+/);
-      const meme = isIndex
-        ? source.memeList[parseInt(name, 10) - 1]
-        : source.getMemeByKeyword(name);
+      const isIndex = !!name.match(/[0-9]+/);
+      const meme = source.getMemeByKeywordOrIndex(name, isIndex);
       if (!meme)
         return formatError(isIndex ? 'no-such-index' : 'no-such-meme', name);
       const { key, params } = meme;

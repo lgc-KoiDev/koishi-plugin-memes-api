@@ -210,7 +210,12 @@ export class MemeSource {
     return undefined;
   }
 
-  getMemeByKeyword(word: string): MemeInfo | undefined {
+  getMemeByKeywordOrIndex(word: string, isIndex = false): MemeInfo | undefined {
+    if (isIndex) {
+      const index = parseInt(word, 10);
+      return this._memeList[index];
+    }
+
     for (const meme of this._memeList)
       if (word === meme.key || meme.keywords.includes(word)) return meme;
     return undefined;

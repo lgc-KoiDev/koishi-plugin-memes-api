@@ -38,7 +38,7 @@ memes-api:
       目前支持的表情列表：
     tip-no-shortcut: |-
       触发指令：“meme generate <关键词/序号> [...图片/文字]”
-      发送指令 “meme info <关键词>” 查看表情参数和预览
+      发送指令 “meme info <关键词/序号>” 查看表情参数和预览
       目前支持的表情列表：
 
   info:

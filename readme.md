@@ -82,6 +82,10 @@ Telegram：[@lgc2333](https://t.me/lgc2333)
 
 ## 📝 更新日志
 
+### 0.1.8
+
+- 给 `meme info` 也加上了序号支持 ([#1](https://github.com/lgc2333/koishi-plugin-memes-api/issues/1))
+
 ### 0.1.7
 
 - `meme generate` 指令可以输入表情编号来调用表情了 ([#1](https://github.com/lgc2333/koishi-plugin-memes-api/issues/1))
