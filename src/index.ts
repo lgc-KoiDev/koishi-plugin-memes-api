@@ -9,6 +9,7 @@ import {
   returnFileToElem,
 } from './data-source';
 import { MemeError, formatError } from './error';
+import { locale } from './locale';
 import {
   extractPlaintext,
   formatRange,
@@ -42,7 +43,7 @@ function wrapError<TA extends any[], TR>(
 }
 
 export async function apply(ctx: Context, config: Config) {
-  ctx.i18n.define('zh', require('./locales/zh-CN'));
+  ctx.i18n.define('zh', locale as any);
 
   const http = ctx.http.extend(config.requestConfig);
   const source = new MemeSource(config, http);
@@ -54,11 +55,11 @@ export async function apply(ctx: Context, config: Config) {
     return;
   }
 
-  ctx.command('meme').alias('memes');
+  const command = ctx.command('meme').alias('memes').usage('头像表情包');
 
-  const cmdList = ctx
-    .command('meme.list')
-    .alias('memes.list')
+  const cmdList = command
+    .subcommand('.list')
+    .usage('获取表情列表')
     .action(
       wrapError(async () => [
         h.i18n(
@@ -70,9 +71,9 @@ export async function apply(ctx: Context, config: Config) {
       ])
     );
 
-  const cmdInfo = ctx
-    .command('meme.info <name:string>')
-    .alias('memes.info')
+  const cmdInfo = command
+    .subcommand('.info <name:string>')
+    .usage('获取表情详情')
     .action(
       wrapError(async (_, name) => {
         const meme = source.getMemeByKeyword(name);
@@ -144,6 +145,7 @@ export async function apply(ctx: Context, config: Config) {
       })
     );
 
+  // TODO 重构屎山，用 `h.parse` 解析消息元素
   const generateMeme = wrapError(
     async (
       session: Session,
@@ -233,7 +235,10 @@ export async function apply(ctx: Context, config: Config) {
         images = (
           await Promise.all(
             imageUrls.map((url) =>
-              ctx.http.axios({ url, responseType: 'arraybuffer' })
+              ctx.http.axios({
+                url,
+                responseType: 'arraybuffer',
+              })
             )
           )
         ).map(getRetFileByResp);
@@ -256,9 +261,9 @@ export async function apply(ctx: Context, config: Config) {
     }
   );
 
-  ctx
-    .command('meme.generate <name:string>')
-    .alias('memes.generate')
+  command
+    .subcommand('.generate <name:string>')
+    .usage('生成表情包')
     .action(({ session }, name) => {
       if (session && session.elements && name) {
         const plainTxt = extractPlaintext(session.elements);
@@ -270,34 +275,48 @@ export async function apply(ctx: Context, config: Config) {
 
   if (config.enableShortcut) {
     cmdList.alias('表情包制作').alias('头像表情包').alias('文字表情包');
-
     cmdInfo.alias('表情详情').alias('表情帮助').alias('表情示例');
+
+    const { prefix: cmdPrefix } = ctx.root.config ?? '';
+    const cmdPrefixes =
+      cmdPrefix instanceof Array ? cmdPrefix : [cmdPrefix as string];
+    const cmdPrefixRegex = cmdPrefixes.map(escapeRegExp).join('|');
+
+    type Match = { key: string; prefixes: string[]; patterns: RegExp[] };
+    const matches: Match[] = [];
+
+    for (const meme of Object.values(source.memes)) {
+      const { key, keywords, patterns } = meme;
+
+      const tmpPfx = [];
+      const tmpPtn = [];
+      for (const pfx of cmdPrefixes) {
+        for (const keyword of keywords) {
+          tmpPfx.push(`${pfx}${keyword}`);
+        }
+      }
+      for (const pattern of patterns) {
+        tmpPtn.push(new RegExp(`(${cmdPrefixRegex})${pattern}`, 'i'));
+      }
+
+      matches.push({ key, prefixes: tmpPfx, patterns: tmpPtn });
+    }
 
     ctx.middleware(async (session, next) => {
       if (!session.elements) return undefined;
 
-      const { prefix } = ctx.root.config ?? '';
-      const prefixes = prefix instanceof Array ? prefix : [prefix as string];
-
       const content = extractPlaintext(session.elements).trim();
 
-      for (const meme of Object.values(source.getMemes())) {
-        const { key, keywords, patterns } = meme;
+      for (const match of matches) {
+        const { key, prefixes, patterns } = match;
 
         for (const pfx of prefixes) {
-          for (const keyword of keywords) {
-            const s = `${pfx}${keyword}`;
-            if (content.startsWith(s)) return generateMeme(session, key, s);
-          }
+          if (content.startsWith(pfx)) return generateMeme(session, key, pfx);
         }
-
-        const prefixRegex = prefixes.map(escapeRegExp).join('|');
-        for (const pattern of patterns) {
-          const match = content.match(
-            new RegExp(`(${prefixRegex})${pattern}`, 'i')
-          );
-          if (match) {
-            return generateMeme(session, key, '', match.slice(2));
+        for (const ptn of patterns) {
+          const ptnMatch = content.match(ptn);
+          if (ptnMatch) {
+            return generateMeme(session, key, '', ptnMatch.slice(2));
           }
         }
       }
@@ -306,8 +325,5 @@ export async function apply(ctx: Context, config: Config) {
     });
   }
 
-  logger.info(
-    `Plugin setup successfully, ` +
-      `loaded ${Object.values(source.getMemes()).length} memes.`
-  );
+  logger.info(`Plugin setup successfully, loaded ${source.count} memes.`);
 }

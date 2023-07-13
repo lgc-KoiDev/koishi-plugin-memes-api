@@ -53,3 +53,14 @@ memes-api:
     preview: |-
       表情预览：
       {0}
+
+  config:
+    command:
+      title: 指令设置
+      enableShortcut: |-
+        是否注册类似原版 `memes` 插件的触发指令。  
+        例：`meme generate 5000兆 我去 洛天依` -> `5000兆 我去 洛天依`
+    cache:
+      title: 缓存设置
+      cacheDir: 插件图片缓存存放的目录。
+      keepCache: 插件会在每次加载时清空已缓存图片，启用该配置则插件不会自动清理缓存。

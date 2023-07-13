@@ -95,11 +95,19 @@ export function getRetFileByResp(resp: AxiosResponse<Buffer>): ReturnFile {
 }
 
 export class MemeSource {
-  protected memes: Record<string, MemeInfo> = {};
+  private _memes: Record<string, MemeInfo> = {};
 
   protected cachedPreviewPath: Record<string, string> = {};
 
   constructor(protected config: Config, protected http: Quester) {}
+
+  get memes(): Record<string, MemeInfo> {
+    return { ...this._memes };
+  }
+
+  get count(): number {
+    return Object.keys(this._memes).length;
+  }
 
   async init() {
     if (!this.config.keepCache && existsSync(this.config.cacheDir))
@@ -117,7 +125,7 @@ export class MemeSource {
   async initMemeList() {
     const keys = await this.getKeys();
     const tasks = keys.map(async (key) => {
-      this.memes[key] = await this.getInfo(key);
+      this._memes[key] = await this.getInfo(key);
     });
     await Promise.all(tasks);
 
@@ -148,14 +156,10 @@ export class MemeSource {
     return undefined;
   }
 
-  getMemes(): Record<string, MemeInfo> {
-    return { ...this.memes };
-  }
-
   getMemeByKeyword(word: string): MemeInfo | undefined {
-    if (word in this.memes) return this.memes[word];
+    if (word in this._memes) return this._memes[word];
 
-    for (const meme of Object.values(this.memes)) {
+    for (const meme of Object.values(this._memes)) {
       if (meme.keywords.includes(word)) return meme;
     }
 
