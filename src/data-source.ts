@@ -1,14 +1,13 @@
-import type { AxiosRequestConfig, AxiosResponse } from 'axios';
-
 import FormData from 'form-data';
 import { existsSync } from 'fs';
 import { mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { Quester, h } from 'koishi';
 import path from 'path';
 
+import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { Config } from './config';
-import { MemeError } from './error';
 import { logger } from './const';
+import { MemeError } from './error';
 
 // #region Response
 export interface MemeArgs {
@@ -210,15 +209,22 @@ export class MemeSource {
     return undefined;
   }
 
-  getMemeByKeywordOrIndex(word: string, isIndex = false): MemeInfo | undefined {
+  /**
+   * @returns [meme, isIndex]
+   */
+  getMemeByKeywordOrIndex(word: string): [MemeInfo | undefined, boolean] {
+    let memeInfo: MemeInfoWithName | undefined;
+    const isIndex = /^\d+$/.test(word);
+
     if (isIndex) {
-      const index = parseInt(word, 10);
-      return this._memeList[index];
+      const index = parseInt(word, 10) - 1;
+      memeInfo = this._memeList[index];
+    } else {
+      for (const meme of this._memeList)
+        if (word === meme.key || meme.keywords.includes(word)) memeInfo = meme;
     }
 
-    for (const meme of this._memeList)
-      if (word === meme.key || meme.keywords.includes(word)) return meme;
-    return undefined;
+    return [memeInfo, isIndex];
   }
 
   async request<T = any, D = any>(

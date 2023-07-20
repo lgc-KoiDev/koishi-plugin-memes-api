@@ -57,13 +57,17 @@ export function formatError(
   params?: MemeParams
 ): h {
   const args: any[] = [];
-  if (name && type === 'no-such-meme') args.push(name);
-  else if (params) {
-    if (type === 'image-number-mismatch')
+
+  if (name && (type === 'no-such-meme' || type === 'no-such-index')) {
+    args.push(name);
+  } else if (params) {
+    if (type === 'image-number-mismatch') {
       args.push(formatRange(params.min_images, params.max_images));
-    else if (type === 'text-number-mismatch')
+    } else if (type === 'text-number-mismatch') {
       args.push(formatRange(params.min_texts, params.max_texts));
+    }
   }
+
   return h.i18n(`memes-api.errors.${type}`, args);
 }
 
