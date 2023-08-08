@@ -64,6 +64,7 @@ export function getAvatarUrlFromID(session: Session, user: string): string {
   const { platform } = session;
   switch (platform) {
     case 'onebot':
+    case 'red':
       return `https://q1.qlogo.cn/g?b=qq&nk=${user}&s=640`;
     default:
       throw new TypeError(`Unsupported platform: ${platform}`);
