@@ -9,6 +9,9 @@ commands:
     description: 表情详情
   meme.generate:
     description: 生成表情包
+    examples: |-
+      meme generate 5000兆 我去 洛天依
+      meme generate rua @Bot /圆
 
 memes-api:
   errors:

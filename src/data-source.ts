@@ -199,11 +199,13 @@ export class MemeSource {
 
     if (key in cachedPreviewPath) {
       const cachePath = cachedPreviewPath[key];
-      if (existsSync(cachePath))
+      if (existsSync(cachePath)) {
+        const extName = path.extname(cachePath).slice(1);
         return {
-          mime: `image/${path.extname(cachePath)}`,
+          mime: `image/${extName}`,
           data: await readFile(cachePath),
         };
+      }
     }
 
     return undefined;

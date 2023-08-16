@@ -55,7 +55,10 @@ export async function apply(ctx: Context, config: Config) {
     return;
   }
 
-  const command = ctx.command('meme').alias('memes');
+  const command = ctx
+    .command('meme')
+    .alias('memes')
+    .action(({ session }) => session?.execute('help meme'));
 
   const cmdList = command
     .subcommand('.list')
@@ -71,7 +74,9 @@ export async function apply(ctx: Context, config: Config) {
     );
 
   const cmdInfo = command.subcommand('.info <name:string>').action(
-    wrapError(async (_, name) => {
+    wrapError(async ({ session }, name) => {
+      if (!name) return session?.execute('help meme.info');
+
       const [meme, isIndex] = source.getMemeByKeywordOrIndex(name);
       if (!meme)
         return formatError(isIndex ? 'no-such-index' : 'no-such-meme', name);
@@ -145,7 +150,7 @@ export async function apply(ctx: Context, config: Config) {
   // TODO 重构屎山，用 `h.parse` 解析消息元素
   const generateMeme = wrapError(
     async (
-      session: Session,
+      session: Session<any, any>,
       name: string,
       prefix: string,
       matched?: string[]
@@ -253,14 +258,16 @@ export async function apply(ctx: Context, config: Config) {
     }
   );
 
-  command.subcommand('.generate <name:string>').action(({ session }, name) => {
-    if (session && session.elements && name) {
+  command
+    .subcommand('.generate <name:string> [...args]')
+    .action(({ session }, name) => {
+      if (!session || !session.elements) return undefined;
+      if (!name) return session.execute('help meme.generate');
+
       const plainTxt = extractPlaintext(session.elements);
       const pfx = plainTxt.slice(0, plainTxt.indexOf(name) + name.length);
       return generateMeme(session, name, pfx);
-    }
-    return undefined;
-  });
+    });
 
   if (config.enableShortcut) {
     cmdList.alias('表情包制作').alias('头像表情包').alias('文字表情包');
