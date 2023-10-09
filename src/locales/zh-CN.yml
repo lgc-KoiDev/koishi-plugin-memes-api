@@ -64,6 +64,8 @@ memes-api:
       enableShortcut: |-
         是否注册类似原版 `memes` 插件的触发指令。  
         例：`meme generate 5000兆 我去 洛天依` -> `5000兆 我去 洛天依`
+      silentShortcut: 是否禁用使用原版触发指令时的 参数错误提示。
+      moreSilent: 是否禁用使用原版触发指令时的 **所有** 错误提示。
     cache:
       title: 缓存设置
       cacheDir: 插件图片缓存存放的目录。

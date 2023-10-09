@@ -5,7 +5,7 @@ import { Quester, h } from 'koishi';
 import path from 'path';
 
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { Config } from './config';
+import { IConfig } from './config';
 import { logger } from './const';
 import { MemeError } from './error';
 
@@ -105,7 +105,7 @@ export class MemeSource {
 
   protected previewCacheJsonPath: string;
 
-  constructor(protected config: Config, protected http: Quester) {
+  constructor(protected config: IConfig, protected http: Quester) {
     this.previewCacheJsonPath = path.join(
       this.config.cacheDir,
       `preview_path.json`

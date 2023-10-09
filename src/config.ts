@@ -1,28 +1,70 @@
 import { Quester, Schema } from 'koishi';
 import { configLocale } from './locale';
 
-export interface Config {
+interface ICommandConfig {
   enableShortcut: boolean;
+  silentShortcut?: boolean;
+  moreSilent?: boolean;
+}
+
+interface ICacheConfig {
   cacheDir: string;
   keepCache: boolean;
+}
+
+interface IRequestConfig {
   requestConfig: Quester.Config;
 }
 
-export const Config: Schema<Config> = Schema.intersect([
-  Schema.object({
-    enableShortcut: Schema.boolean()
-      .default(true)
-      .description(configLocale.command.enableShortcut),
-  }).description(configLocale.command.title),
-  Schema.object({
-    cacheDir: Schema.path({ filters: ['directory'], allowCreate: true })
-      .default('cache/memes')
-      .description(configLocale.cache.cacheDir),
-    keepCache: Schema.boolean()
-      .default(false)
-      .description(configLocale.cache.keepCache),
-  }).description(configLocale.cache.title),
-  Schema.object({
-    requestConfig: Quester.createConfig('http://127.0.0.1:2233'),
-  }),
+export type IConfig = ICommandConfig & ICacheConfig & IRequestConfig;
+
+const baseCmdCfg = Schema.object({
+  enableShortcut: Schema.boolean()
+    .default(true)
+    .description(configLocale.command.enableShortcut),
+}).description(configLocale.command.title);
+const cmdCfgWithSilent = Schema.intersect([
+  baseCmdCfg,
+  Schema.union([
+    Schema.object({
+      enableShortcut: Schema.const(true),
+      silentShortcut: Schema.boolean()
+        .default(false)
+        .description(configLocale.command.silentShortcut),
+    }),
+    Schema.object({}),
+  ]),
+]);
+const cmdCfgWithMoreSilent = Schema.intersect([
+  cmdCfgWithSilent,
+  Schema.union([
+    Schema.object({
+      enableShortcut: Schema.const(true),
+      silentShortcut: Schema.const(true).required(),
+      moreSilent: Schema.boolean()
+        .default(false)
+        .description(configLocale.command.moreSilent),
+    }),
+    Schema.object({}),
+  ]),
+]);
+const commandConfig: Schema<ICommandConfig> = cmdCfgWithMoreSilent;
+
+const cacheConfig: Schema<ICacheConfig> = Schema.object({
+  cacheDir: Schema.path({ filters: ['directory'], allowCreate: true })
+    .default('cache/memes')
+    .description(configLocale.cache.cacheDir),
+  keepCache: Schema.boolean()
+    .default(false)
+    .description(configLocale.cache.keepCache),
+}).description(configLocale.cache.title);
+
+const requestConfig: Schema<IRequestConfig> = Schema.object({
+  requestConfig: Quester.createConfig('http://127.0.0.1:2233'),
+});
+
+export const Config: Schema<IConfig> = Schema.intersect([
+  commandConfig,
+  cacheConfig,
+  requestConfig,
 ]);

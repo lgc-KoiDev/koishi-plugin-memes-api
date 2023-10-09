@@ -48,6 +48,8 @@ export interface ConfigLocaleBase {
 
 export interface MemeCommandConfigLocale extends ConfigLocaleBase {
   enableShortcut: string;
+  silentShortcut: string;
+  moreSilent: string;
 }
 
 export interface MemeCacheConfigLocale extends ConfigLocaleBase {

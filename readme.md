@@ -82,6 +82,10 @@ Telegram：[@lgc2333](https://t.me/lgc2333)
 
 ## 📝 更新日志
 
+### 0.1.12
+
+- [#7](https://github.com/lgc2333/koishi-plugin-memes-api/issues/7)
+
 ### 0.1.11
 
 - fix [#6](https://github.com/lgc2333/koishi-plugin-memes-api/issues/6) `meme ls 的时候会让 gocq 出现无法发图片的情况`

@@ -1,6 +1,6 @@
 import { Context, Session, escapeRegExp, h } from 'koishi';
 
-import { Config } from './config';
+import { Config, IConfig } from './config';
 import { logger } from './const';
 import {
   MemeSource,
@@ -8,12 +8,13 @@ import {
   getRetFileByResp,
   returnFileToElem,
 } from './data-source';
-import { MemeError, formatError } from './error';
+import { MemeError, formatError, paramErrorTypes } from './error';
 import { locale } from './locale';
 import {
   extractPlaintext,
   formatRange,
   getAvatarUrlFromID,
+  getI18N,
   splitArg,
 } from './utils';
 
@@ -42,7 +43,8 @@ function wrapError<TA extends any[], TR>(
   };
 }
 
-export async function apply(ctx: Context, config: Config) {
+export async function apply(ctx: Context, config: IConfig) {
+  ctx.i18n.define('zh-CN', locale as any);
   ctx.i18n.define('zh', locale as any);
 
   const http = ctx.http.extend(config.requestConfig);
@@ -303,17 +305,37 @@ export async function apply(ctx: Context, config: Config) {
 
       const content = extractPlaintext(session.elements).trim();
 
+      const generate = async (
+        ...rest: Parameters<typeof generateMeme>
+      ): Promise<h | undefined> => {
+        const rh = await generateMeme(...rest);
+        if (rh?.type !== 'i18n') return rh;
+
+        const errPfx = 'memes-api.errors.';
+        const i18nPath = rh.attrs.path as string;
+        const i18nArgs = rh.children as any[];
+        if (i18nPath && i18nPath.startsWith(errPfx)) {
+          const errType = i18nPath.slice(errPfx.length);
+          if (
+            config.silentShortcut &&
+            (config.moreSilent || paramErrorTypes.includes(errType as any))
+          ) {
+            logger.warn(`Silenced error: ${getI18N(ctx, i18nPath, i18nArgs)}`);
+            return undefined;
+          }
+        }
+        return rh;
+      };
+
       for (const match of matches) {
         const { key, prefixes, patterns } = match;
 
         for (const pfx of prefixes) {
-          if (content.startsWith(pfx)) return generateMeme(session, key, pfx);
+          if (content.startsWith(pfx)) return generate(session, key, pfx);
         }
         for (const ptn of patterns) {
           const ptnMatch = content.match(ptn);
-          if (ptnMatch) {
-            return generateMeme(session, key, '', ptnMatch.slice(2));
-          }
+          if (ptnMatch) return generate(session, key, '', ptnMatch.slice(2));
         }
       }
 
