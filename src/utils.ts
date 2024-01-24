@@ -68,7 +68,7 @@ export async function getAvatarUrlFromID(session: Session, user: string): Promis
     case 'red':
       return `https://q1.qlogo.cn/g?b=qq&nk=${user}&s=640`;
     case 'telegram':
-      return(await session.telegram.bot.getUser(user, session.guildId)).avatar;
+      return(await session.telegram.bot.getUser(user)).avatar;
     default:
       throw new TypeError(`Unsupported platform: ${platform}`);
   }
