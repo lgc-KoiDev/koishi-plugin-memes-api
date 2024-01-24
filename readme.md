@@ -82,6 +82,14 @@ Telegram：[@lgc2333](https://t.me/lgc2333)
 
 ## 📝 更新日志
 
+### 0.1.13
+
+- [#9](https://github.com/lgc2333/koishi-plugin-memes-api/issues/9)：
+  - 添加配置项 `autoUseSenderAvatarWhenOnlyOne` 与 `autoUseSenderAvatarWhenOneLeft`
+- [#10](https://github.com/lgc2333/koishi-plugin-memes-api/pull/10)
+- [#11](https://github.com/lgc2333/koishi-plugin-memes-api/pull/11)
+- 修改图片或文字数量不符的提示信息
+
 ### 0.1.12
 
 - [#7](https://github.com/lgc2333/koishi-plugin-memes-api/issues/7)
