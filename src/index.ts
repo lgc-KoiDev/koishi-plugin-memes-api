@@ -205,7 +205,9 @@ export async function apply(ctx: Context, config: IConfig) {
           imageUrlOrTasks.push(getAvatarUrlFromID(session, ele.attrs.id));
       }
 
-      const senderAvatar = session.author?.avatar ? session.author.avatar : await getAvatarUrlFromID(session, session.author.id);
+      const senderAvatar =
+        session.author?.avatar ??
+        (await getAvatarUrlFromID(session, session.author.id));
       if (senderAvatar) {
         if (selfLen) {
           imageUrlOrTasks.push(...Array(selfLen).fill(senderAvatar));
