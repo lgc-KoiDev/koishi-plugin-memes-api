@@ -207,7 +207,7 @@ export async function apply(ctx: Context, config: IConfig) {
         }
       }
 
-      const senderAvatar = session.author?.avatar;
+      const senderAvatar = session.author?.avatar ? session.author.avatar : await getAvatarUrlFromID(session, session.author.id);
       if (senderAvatar) {
         if (selfLen) {
           imageUrls.push(...Array(selfLen).fill(senderAvatar));
