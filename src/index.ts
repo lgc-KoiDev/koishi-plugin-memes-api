@@ -189,16 +189,16 @@ export async function apply(ctx: Context, config: IConfig) {
       if (session.quote?.elements) {
         imageUrls.push(
           ...session.quote.elements
-            .filter((x) => x.type === 'image')
-            .map((x) => x.attrs.url as string)
+            .filter((x) => x.type === 'img')
+            .map((x) => x.attrs.src as string)
         );
       }
       for (const ele of session.elements.slice(1)) {
         // 需要忽略回复转化为的 at，第一个不是 at 就是指令，可以放心忽略（应该
-        if (ele.type === 'image') imageUrls.push(ele.attrs.url as string);
+        if (ele.type === 'img') imageUrls.push(ele.attrs.src as string);
         if (ele.type === 'at') {
           try {
-            imageUrls.push(getAvatarUrlFromID(session, ele.attrs.id));
+            imageUrls.push(await getAvatarUrlFromID(session, ele.attrs.id));
           } catch {
             return h.i18n('memes-api.errors.platform-not-supported', [
               session.platform,
