@@ -82,6 +82,10 @@ Telegram：[@lgc2333](https://t.me/lgc2333)
 
 ## 📝 更新日志
 
+### 0.1.14
+
+- 修复打包错误
+
 ### 0.1.13
 
 - [#9](https://github.com/lgc2333/koishi-plugin-memes-api/issues/9)：
