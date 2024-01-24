@@ -1,4 +1,6 @@
 import { Context, Session, h } from 'koishi';
+import type { TelegramBot } from '@koishijs/plugin-adapter-telegram';
+import {} from '@koishijs/plugin-adapter-telegram';
 
 export function extractPlaintext(elements: h[]): string {
   return elements
@@ -66,6 +68,13 @@ export function getAvatarUrlFromID(session: Session, user: string): string {
     case 'onebot':
     case 'red':
       return `https://q1.qlogo.cn/g?b=qq&nk=${user}&s=640`;
+    case 'telegram':
+      let bot = session.telegram.bot;
+      let at_user;
+      (bot as TelegramBot).getUser(user).then(u => {
+        at_user = u;
+      })
+      return at_user.avatar;
     default:
       throw new TypeError(`Unsupported platform: ${platform}`);
   }
