@@ -198,7 +198,7 @@ export async function apply(ctx: Context, config: IConfig) {
         if (ele.type === 'img') imageUrls.push(ele.attrs.src as string);
         if (ele.type === 'at') {
           try {
-            imageUrls.push(getAvatarUrlFromID(session, ele.attrs.id));
+            imageUrls.push(await getAvatarUrlFromID(session, ele.attrs.id));
           } catch {
             return h.i18n('memes-api.errors.platform-not-supported', [
               session.platform,
