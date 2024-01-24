@@ -50,6 +50,8 @@ export interface MemeCommandConfigLocale extends ConfigLocaleBase {
   enableShortcut: string;
   silentShortcut: string;
   moreSilent: string;
+  autoUseSenderAvatarWhenOnlyOne: string;
+  autoUseSenderAvatarWhenOneLeft: string;
 }
 
 export interface MemeCacheConfigLocale extends ConfigLocaleBase {

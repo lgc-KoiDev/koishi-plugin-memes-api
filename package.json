@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-memes-api",
   "description": "表情包制作插件调用 API 版",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -39,20 +39,12 @@
     ]
   },
   "peerDependencies": {
-    "koishi": "^4.14.1"
-  },
-  "dependencies": {
-    "@koishijs/plugin-adapter-telegram": "^4.3.0",
-    "@koishijs/plugin-console": "^5.25.7",
-    "@koishijs/plugin-echo": "^2.2.5",
-    "@koishijs/plugin-sandbox": "^3.2.4",
-    "form-data": "^4.0.0",
     "koishi": "^4.16.6"
   },
-  "devDependencies": {
-    "@types/node": "^20.11.5",
-    "esbuild": "^0.19.12",
-    "esbuild-register": "^3.5.0",
-    "typescript": "^5.3.3"
+  "optionalDependencies": {
+    "@koishijs/plugin-adapter-telegram": "^4.3.0"
+  },
+  "dependencies": {
+    "form-data": "^4.0.0"
   }
 }

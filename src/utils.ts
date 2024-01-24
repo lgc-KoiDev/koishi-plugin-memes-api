@@ -61,15 +61,24 @@ export function splitArg(text: string): string[] {
   return args.map((x) => x.trim()).filter((x) => x.length);
 }
 
-export async function getAvatarUrlFromID(session: Session, user: string): Promise<string> {
+export async function getAvatarUrlFromID(
+  session: Session,
+  user: string
+): Promise<string> {
   const { platform } = session;
   switch (platform) {
     case 'onebot':
     case 'red':
       return `https://q1.qlogo.cn/g?b=qq&nk=${user}&s=640`;
-    case 'telegram':
-      return(await session.telegram.bot.getUser(user)).avatar;
+    case 'telegram': {
+      const avatar = (await session.telegram?.bot.getUser(user))?.avatar;
+      if (!avatar) break;
+      return avatar;
+    }
     default:
-      throw new TypeError(`Unsupported platform: ${platform}`);
+      break;
   }
+  throw new TypeError(
+    `Unsupported platform '${platform}' or unsupported session`
+  );
 }

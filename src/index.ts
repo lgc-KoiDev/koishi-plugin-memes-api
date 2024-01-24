@@ -8,7 +8,12 @@ import {
   getRetFileByResp,
   returnFileToElem,
 } from './data-source';
-import { MemeError, formatError, paramErrorTypes } from './error';
+import {
+  MemeError,
+  UnsupportedPlatformError,
+  formatError,
+  paramErrorTypes,
+} from './error';
 import { locale } from './locale';
 import {
   extractPlaintext,
@@ -164,7 +169,7 @@ export async function apply(ctx: Context, config: IConfig) {
         return formatError(isIndex ? 'no-such-index' : 'no-such-meme', name);
       const { key, params } = meme;
 
-      const imageUrls: string[] = [];
+      const imageUrlOrTasks: (string | Promise<string>)[] = [];
       const texts: string[] = [];
       const args: Record<string, string> = {};
 
@@ -187,7 +192,7 @@ export async function apply(ctx: Context, config: IConfig) {
       }
 
       if (session.quote?.elements) {
-        imageUrls.push(
+        imageUrlOrTasks.push(
           ...session.quote.elements
             .filter((x) => x.type === 'img')
             .map((x) => x.attrs.src as string)
@@ -195,29 +200,25 @@ export async function apply(ctx: Context, config: IConfig) {
       }
       for (const ele of session.elements.slice(1)) {
         // 需要忽略回复转化为的 at，第一个不是 at 就是指令，可以放心忽略（应该
-        if (ele.type === 'img') imageUrls.push(ele.attrs.src as string);
-        if (ele.type === 'at') {
-          try {
-            imageUrls.push(await getAvatarUrlFromID(session, ele.attrs.id));
-          } catch {
-            return h.i18n('memes-api.errors.platform-not-supported', [
-              session.platform,
-            ]);
-          }
-        }
+        if (ele.type === 'img') imageUrlOrTasks.push(ele.attrs.src as string);
+        if (ele.type === 'at')
+          imageUrlOrTasks.push(getAvatarUrlFromID(session, ele.attrs.id));
       }
 
       const senderAvatar = session.author?.avatar;
       if (senderAvatar) {
         if (selfLen) {
-          imageUrls.push(...Array(selfLen).fill(senderAvatar));
+          imageUrlOrTasks.push(...Array(selfLen).fill(senderAvatar));
         }
 
         if (
-          (meme.params.min_images === 2 && imageUrls.length === 1) ||
-          (!imageUrls.length && meme.params.min_images === 1)
+          (config.autoUseSenderAvatarWhenOnlyOne &&
+            !imageUrlOrTasks.length &&
+            meme.params.min_images === 1) ||
+          (config.autoUseSenderAvatarWhenOneLeft &&
+            imageUrlOrTasks.length + 1 === meme.params.min_images)
         )
-          imageUrls.unshift(senderAvatar);
+          imageUrlOrTasks.unshift(senderAvatar);
       } else if (selfLen) {
         return h.i18n('memes-api.errors.platform-not-supported', [
           session.platform,
@@ -225,22 +226,34 @@ export async function apply(ctx: Context, config: IConfig) {
       }
 
       if (!texts.length) texts.push(...params.default_texts);
-
+      const currentNum = imageUrlOrTasks.length;
       if (
-        imageUrls.length < params.min_images ||
-        imageUrls.length > params.max_images
+        imageUrlOrTasks.length < params.min_images ||
+        imageUrlOrTasks.length > params.max_images
       )
-        return formatError('image-number-mismatch', name, params);
-
+        return formatError('image-number-mismatch', { params, currentNum });
       if (texts.length < params.min_texts || texts.length > params.max_texts)
-        return formatError('text-number-mismatch', name, params);
+        return formatError('text-number-mismatch', { params, currentNum });
+
+      let imageUrls: string[];
+      try {
+        imageUrls = await Promise.all(imageUrlOrTasks);
+      } catch (e) {
+        if (e instanceof UnsupportedPlatformError) {
+          return h.i18n('memes-api.errors.platform-not-supported', [
+            session.platform,
+          ]);
+        }
+        logger.error(e);
+        return h.i18n('memes-api.errors.download-avatar-failed');
+      }
 
       let images: ReturnFile[];
       try {
         const tasks = imageUrls.map((url) =>
           ctx.http.axios({ url, responseType: 'arraybuffer' })
         );
-        images = (await Promise.all(tasks)).map(getRetFileByResp);
+        images = (await Promise.all(tasks)).map(getRetFileByResp as any);
       } catch (e) {
         logger.error(e);
         return h.i18n('memes-api.errors.download-avatar-failed');
@@ -253,7 +266,7 @@ export async function apply(ctx: Context, config: IConfig) {
         // 这个时候出错可能需要给格式化函数传参，单独 catch 一下
         if (!(e instanceof MemeError)) throw e;
         logger.error(e);
-        return e.format(name, params);
+        return e.format({ name, params, currentNum });
       }
 
       return returnFileToElem(img);

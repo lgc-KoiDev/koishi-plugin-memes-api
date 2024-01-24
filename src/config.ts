@@ -5,6 +5,8 @@ interface ICommandConfig {
   enableShortcut: boolean;
   silentShortcut?: boolean;
   moreSilent?: boolean;
+  autoUseSenderAvatarWhenOnlyOne: boolean;
+  autoUseSenderAvatarWhenOneLeft: boolean;
 }
 
 interface ICacheConfig {
@@ -18,13 +20,13 @@ interface IRequestConfig {
 
 export type IConfig = ICommandConfig & ICacheConfig & IRequestConfig;
 
-const baseCmdCfg = Schema.object({
+const shortcutCmdConfig = Schema.object({
   enableShortcut: Schema.boolean()
     .default(true)
     .description(configLocale.command.enableShortcut),
 }).description(configLocale.command.title);
-const cmdCfgWithSilent = Schema.intersect([
-  baseCmdCfg,
+const shortcutCmdCfgWithSilent = Schema.intersect([
+  shortcutCmdConfig,
   Schema.union([
     Schema.object({
       enableShortcut: Schema.const(true),
@@ -35,8 +37,8 @@ const cmdCfgWithSilent = Schema.intersect([
     Schema.object({}),
   ]),
 ]);
-const cmdCfgWithMoreSilent = Schema.intersect([
-  cmdCfgWithSilent,
+const shortcutCmdCfgWithMoreSilent = Schema.intersect([
+  shortcutCmdCfgWithSilent,
   Schema.union([
     Schema.object({
       enableShortcut: Schema.const(true),
@@ -48,7 +50,17 @@ const cmdCfgWithMoreSilent = Schema.intersect([
     Schema.object({}),
   ]),
 ]);
-const commandConfig: Schema<ICommandConfig> = cmdCfgWithMoreSilent;
+const commandConfig: Schema<ICommandConfig> = Schema.intersect([
+  shortcutCmdCfgWithMoreSilent,
+  Schema.object({
+    autoUseSenderAvatarWhenOnlyOne: Schema.boolean()
+      .default(true)
+      .description(configLocale.command.autoUseSenderAvatarWhenOnlyOne),
+    autoUseSenderAvatarWhenOneLeft: Schema.boolean()
+      .default(true)
+      .description(configLocale.command.autoUseSenderAvatarWhenOneLeft),
+  }),
+]);
 
 const cacheConfig: Schema<ICacheConfig> = Schema.object({
   cacheDir: Schema.path({ filters: ['directory'], allowCreate: true })

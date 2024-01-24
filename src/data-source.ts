@@ -233,7 +233,7 @@ export class MemeSource {
     config: AxiosRequestConfig<D> = {}
   ): Promise<AxiosResponse<T, D>> {
     try {
-      return await this.http.axios({ ...config });
+      return (await this.http.axios({ ...config } as any)) as any;
     } catch (e) {
       throw new MemeError(e);
     }

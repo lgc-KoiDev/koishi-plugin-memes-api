@@ -19,8 +19,8 @@ memes-api:
     text-over-length: 文字长度过长。
     open-image-failed: 打开图片失败。
     parser-exit: 参数解析错误。
-    image-number-mismatch: 输入图片数量不符，图片数量应为 {0}。
-    text-number-mismatch: 输入文字数量不符，文字数量应为 {0}。
+    image-number-mismatch: 输入图片数量不符，图片数量应为 {0}，但当前为 {1}。
+    text-number-mismatch: 输入文字数量不符，文字数量应为 {0}，但当前为 {1}。
     arg-parser-exit: 参数解析错误。
     arg-model-mismatch: 请求参数错误。
     arg-mismatch: 传入参数错误，请检查。
@@ -66,6 +66,8 @@ memes-api:
         例：`meme generate 5000兆 我去 洛天依` -> `5000兆 我去 洛天依`
       silentShortcut: 是否禁用使用原版触发指令时的 参数错误提示。
       moreSilent: 是否禁用使用原版触发指令时的 **所有** 错误提示。
+      autoUseSenderAvatarWhenOnlyOne: 是否在仅需求一张图片且用户未提供时自动使用发送者头像。
+      autoUseSenderAvatarWhenOneLeft: 是否在用户已提供图片但距离最少需求图片数仅差 1 时自动使用发送者头像。
     cache:
       title: 缓存设置
       cacheDir: 插件图片缓存存放的目录。

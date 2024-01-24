@@ -61,23 +61,38 @@ export function getErrorType(errorCode?: number): RequestErrorTypes {
   return 'unknown-error';
 }
 
+export type NoSuchMemeOrIndexExtra = { name: string };
+export type ImageOrTextNumberMismatchExtra = {
+  params: MemeParams;
+  currentNum: number;
+};
+
 export function formatError(
-  type: ErrorTypes,
-  name?: string,
-  params?: MemeParams
-): h {
+  type: 'no-such-meme' | 'no-such-index',
+  extra: NoSuchMemeOrIndexExtra
+): h;
+export function formatError(
+  type: 'image-number-mismatch' | 'text-number-mismatch',
+  extra: ImageOrTextNumberMismatchExtra
+): h;
+export function formatError(type: ErrorTypes, extra?: any): h;
+export function formatError(type: ErrorTypes, extra?: any): h {
   const args: any[] = [];
-
-  if (name && (type === 'no-such-meme' || type === 'no-such-index')) {
-    args.push(name);
-  } else if (params) {
-    if (type === 'image-number-mismatch') {
-      args.push(formatRange(params.min_images, params.max_images));
-    } else if (type === 'text-number-mismatch') {
-      args.push(formatRange(params.min_texts, params.max_texts));
+  switch (type) {
+    case 'no-such-meme':
+    case 'no-such-index': {
+      args.push(extra.name);
+      break;
     }
+    case 'image-number-mismatch':
+    case 'text-number-mismatch': {
+      const { params, currentNum } = extra as ImageOrTextNumberMismatchExtra;
+      args.push(formatRange(params.min_images, params.max_images), currentNum);
+      break;
+    }
+    default:
+      break;
   }
-
   return h.i18n(`memes-api.errors.${type}`, args);
 }
 
@@ -103,7 +118,7 @@ export class MemeError extends Error {
 
   get response(): AxiosResponse | undefined {
     if (Quester.isAxiosError(this.error)) {
-      return this.error.response;
+      return this.error.response as any;
     }
     return undefined;
   }
@@ -112,7 +127,18 @@ export class MemeError extends Error {
     return getErrorType(this.code);
   }
 
-  format(name?: string, params?: MemeParams): h {
-    return formatError(this.type, name, params);
+  format(extra?: any): h {
+    return formatError(this.type, extra);
+  }
+}
+
+export class UnsupportedPlatformError extends Error {
+  constructor(private platform: string) {
+    super();
+    this.name = 'UnsupportedPlatformError';
+  }
+
+  get message(): string {
+    return `Unsupported platform '${this.platform}' or unsupported session`;
   }
 }
