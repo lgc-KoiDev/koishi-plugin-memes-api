@@ -87,7 +87,11 @@ export function formatError(type: ErrorTypes, extra?: any): h {
     case 'image-number-mismatch':
     case 'text-number-mismatch': {
       const { params, currentNum } = extra as ImageOrTextNumberMismatchExtra;
-      args.push(formatRange(params.min_images, params.max_images), currentNum);
+      const range =
+        type === 'image-number-mismatch'
+          ? formatRange(params.min_images, params.max_images)
+          : formatRange(params.min_texts, params.max_texts);
+      args.push(range, currentNum);
       break;
     }
     default:
@@ -129,16 +133,5 @@ export class MemeError extends Error {
 
   format(extra?: any): h {
     return formatError(this.type, extra);
-  }
-}
-
-export class UnsupportedPlatformError extends Error {
-  constructor(private platform: string) {
-    super();
-    this.name = 'UnsupportedPlatformError';
-  }
-
-  get message(): string {
-    return `Unsupported platform '${this.platform}' or unsupported session`;
   }
 }

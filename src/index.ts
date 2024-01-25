@@ -8,14 +8,10 @@ import {
   getRetFileByResp,
   returnFileToElem,
 } from './data-source';
-import {
-  MemeError,
-  UnsupportedPlatformError,
-  formatError,
-  paramErrorTypes,
-} from './error';
+import { MemeError, formatError, paramErrorTypes } from './error';
 import { locale } from './locale';
 import {
+  UnsupportedPlatformError,
   extractPlaintext,
   formatRange,
   getAvatarUrlFromID,
@@ -237,26 +233,19 @@ export async function apply(ctx: Context, config: IConfig) {
       if (texts.length < params.min_texts || texts.length > params.max_texts)
         return formatError('text-number-mismatch', { params, currentNum });
 
-      let imageUrls: string[];
+      let images: ReturnFile[];
       try {
-        imageUrls = await Promise.all(imageUrlOrTasks);
+        const imageUrls = await Promise.all(imageUrlOrTasks);
+        const tasks = imageUrls.map((url) =>
+          ctx.http.axios({ url, responseType: 'arraybuffer' })
+        );
+        images = (await Promise.all(tasks)).map(getRetFileByResp as any);
       } catch (e) {
         if (e instanceof UnsupportedPlatformError) {
           return h.i18n('memes-api.errors.platform-not-supported', [
             session.platform,
           ]);
         }
-        logger.error(e);
-        return h.i18n('memes-api.errors.download-avatar-failed');
-      }
-
-      let images: ReturnFile[];
-      try {
-        const tasks = imageUrls.map((url) =>
-          ctx.http.axios({ url, responseType: 'arraybuffer' })
-        );
-        images = (await Promise.all(tasks)).map(getRetFileByResp as any);
-      } catch (e) {
         logger.error(e);
         return h.i18n('memes-api.errors.download-avatar-failed');
       }

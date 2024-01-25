@@ -1,5 +1,16 @@
-import { Context, Session, h } from 'koishi';
 import {} from '@koishijs/plugin-adapter-telegram';
+import { Context, Session, h } from 'koishi';
+
+export class UnsupportedPlatformError extends Error {
+  constructor(private platform: string) {
+    super();
+    this.name = 'UnsupportedPlatformError';
+  }
+
+  get message(): string {
+    return `Unsupported platform '${this.platform}' or unsupported session`;
+  }
+}
 
 export function extractPlaintext(elements: h[]): string {
   return elements
@@ -78,7 +89,7 @@ export async function getAvatarUrlFromID(
     default:
       break;
   }
-  throw new TypeError(
+  throw new UnsupportedPlatformError(
     `Unsupported platform '${platform}' or unsupported session`
   );
 }
