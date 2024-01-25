@@ -201,14 +201,14 @@ export async function apply(ctx: Context, config: IConfig) {
           imageUrlOrTasks.push(getAvatarUrlFromID(session, ele.attrs.id));
       }
 
-      const hasImageArg = !!(imageUrlOrTasks.length || selfLen);
+      const imageArgLen = imageUrlOrTasks.length + selfLen;
       const autoUseAvatar =
         (config.autoUseSenderAvatarWhenOnlyOne &&
-          !hasImageArg &&
+          !imageArgLen &&
           meme.params.min_images === 1) ||
         (config.autoUseSenderAvatarWhenOneLeft &&
-          hasImageArg &&
-          imageUrlOrTasks.length + 1 === meme.params.min_images);
+          imageArgLen &&
+          imageArgLen + 1 === meme.params.min_images);
       if (selfLen || autoUseAvatar) {
         let senderAvatar;
         try {
