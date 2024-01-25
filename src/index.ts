@@ -201,26 +201,29 @@ export async function apply(ctx: Context, config: IConfig) {
           imageUrlOrTasks.push(getAvatarUrlFromID(session, ele.attrs.id));
       }
 
-      const senderAvatar =
-        session.author?.avatar ??
-        (await getAvatarUrlFromID(session, session.author.id));
-      if (senderAvatar) {
-        if (selfLen) {
-          imageUrlOrTasks.push(...Array(selfLen).fill(senderAvatar));
+      const autoUseAvatar =
+        (config.autoUseSenderAvatarWhenOnlyOne &&
+          !imageUrlOrTasks.length &&
+          meme.params.min_images === 1) ||
+        (config.autoUseSenderAvatarWhenOneLeft &&
+          imageUrlOrTasks.length + 1 === meme.params.min_images);
+      if (selfLen || autoUseAvatar) {
+        let senderAvatar;
+        try {
+          senderAvatar =
+            session.author?.avatar ??
+            (await getAvatarUrlFromID(session, session.author.id));
+        } catch (e) {
+          logger.error(e);
+        }
+        if (!senderAvatar) {
+          return h.i18n('memes-api.errors.platform-not-supported', [
+            session.platform,
+          ]);
         }
 
-        if (
-          (config.autoUseSenderAvatarWhenOnlyOne &&
-            !imageUrlOrTasks.length &&
-            meme.params.min_images === 1) ||
-          (config.autoUseSenderAvatarWhenOneLeft &&
-            imageUrlOrTasks.length + 1 === meme.params.min_images)
-        )
-          imageUrlOrTasks.unshift(senderAvatar);
-      } else if (selfLen) {
-        return h.i18n('memes-api.errors.platform-not-supported', [
-          session.platform,
-        ]);
+        if (selfLen) imageUrlOrTasks.push(...Array(selfLen).fill(senderAvatar));
+        if (autoUseAvatar) imageUrlOrTasks.unshift(senderAvatar);
       }
 
       if (!texts.length) texts.push(...params.default_texts);
