@@ -206,6 +206,7 @@ export async function apply(ctx: Context, config: IConfig) {
           !imageUrlOrTasks.length &&
           meme.params.min_images === 1) ||
         (config.autoUseSenderAvatarWhenOneLeft &&
+          imageUrlOrTasks.length &&
           imageUrlOrTasks.length + 1 === meme.params.min_images);
       if (selfLen || autoUseAvatar) {
         let senderAvatar;
