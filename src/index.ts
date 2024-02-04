@@ -82,7 +82,9 @@ export async function apply(ctx: Context, config: IConfig) {
 
       const [meme, isIndex] = source.getMemeByKeywordOrIndex(name);
       if (!meme)
-        return formatError(isIndex ? 'no-such-index' : 'no-such-meme', name);
+        return formatError(isIndex ? 'no-such-index' : 'no-such-meme', {
+          name,
+        });
 
       const {
         key,
@@ -162,7 +164,9 @@ export async function apply(ctx: Context, config: IConfig) {
 
       const [meme, isIndex] = source.getMemeByKeywordOrIndex(name);
       if (!meme)
-        return formatError(isIndex ? 'no-such-index' : 'no-such-meme', name);
+        return formatError(isIndex ? 'no-such-index' : 'no-such-meme', {
+          name,
+        });
       const { key, params } = meme;
 
       const imageUrlOrTasks: (string | Promise<string>)[] = [];
@@ -202,13 +206,14 @@ export async function apply(ctx: Context, config: IConfig) {
       }
 
       const imageArgLen = imageUrlOrTasks.length + selfLen;
-      const autoUseAvatar =
+      const autoUseAvatar = !!(
         (config.autoUseSenderAvatarWhenOnlyOne &&
           !imageArgLen &&
           meme.params.min_images === 1) ||
         (config.autoUseSenderAvatarWhenOneLeft &&
           imageArgLen &&
-          imageArgLen + 1 === meme.params.min_images);
+          imageArgLen + 1 === meme.params.min_images)
+      );
       if (selfLen || autoUseAvatar) {
         let senderAvatar;
         try {
@@ -229,14 +234,18 @@ export async function apply(ctx: Context, config: IConfig) {
       }
 
       if (!texts.length) texts.push(...params.default_texts);
-      const currentNum = imageUrlOrTasks.length;
+      const currentImgNum = imageUrlOrTasks.length;
+      const currentTextNum = texts.length;
       if (
-        imageUrlOrTasks.length < params.min_images ||
-        imageUrlOrTasks.length > params.max_images
+        currentImgNum < params.min_images ||
+        currentImgNum > params.max_images
       )
-        return formatError('image-number-mismatch', { params, currentNum });
-      if (texts.length < params.min_texts || texts.length > params.max_texts)
-        return formatError('text-number-mismatch', { params, currentNum });
+        return formatError('image-number-mismatch', { params, currentImgNum });
+      if (
+        currentTextNum < params.min_texts ||
+        currentTextNum > params.max_texts
+      )
+        return formatError('text-number-mismatch', { params, currentTextNum });
 
       let images: ReturnFile[];
       try {
@@ -262,7 +271,7 @@ export async function apply(ctx: Context, config: IConfig) {
         // 这个时候出错可能需要给格式化函数传参，单独 catch 一下
         if (!(e instanceof MemeError)) throw e;
         logger.error(e);
-        return e.format({ name, params, currentNum });
+        return e.format({ name, params, currentImgNum, currentTextNum });
       }
 
       return returnFileToElem(img);

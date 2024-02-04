@@ -62,41 +62,45 @@ export function getErrorType(errorCode?: number): RequestErrorTypes {
 }
 
 export type NoSuchMemeOrIndexExtra = { name: string };
-export type ImageOrTextNumberMismatchExtra = {
+export type ImageNumberMismatchExtra = {
   params: MemeParams;
-  currentNum: number;
+  currentImgNum: number;
+};
+export type TextNumberMismatchExtra = {
+  params: MemeParams;
+  currentTextNum: number;
+};
+export type MemeErrorExtraMap = {
+  'no-such-meme': NoSuchMemeOrIndexExtra;
+  'no-such-index': NoSuchMemeOrIndexExtra;
+  'image-number-mismatch': ImageNumberMismatchExtra;
+  'text-number-mismatch': TextNumberMismatchExtra;
+};
+export const memeErrorArgFormatters: {
+  [K in keyof MemeErrorExtraMap]: (extra: MemeErrorExtraMap[K]) => any[];
+} = {
+  'no-such-meme': (extra) => [extra.name],
+  'no-such-index': (extra) => [extra.name],
+  'image-number-mismatch': (extra) => {
+    const { params, currentImgNum } = extra;
+    return [formatRange(params.min_images, params.max_images), currentImgNum];
+  },
+  'text-number-mismatch': (extra) => {
+    const { params, currentTextNum } = extra;
+    return [formatRange(params.min_texts, params.max_texts), currentTextNum];
+  },
 };
 
-export function formatError(
-  type: 'no-such-meme' | 'no-such-index',
-  extra: NoSuchMemeOrIndexExtra
-): h;
-export function formatError(
-  type: 'image-number-mismatch' | 'text-number-mismatch',
-  extra: ImageOrTextNumberMismatchExtra
+export function formatError<E extends keyof MemeErrorExtraMap>(
+  type: E,
+  extra: MemeErrorExtraMap[E]
 ): h;
 export function formatError(type: ErrorTypes, extra?: any): h;
 export function formatError(type: ErrorTypes, extra?: any): h {
-  const args: any[] = [];
-  switch (type) {
-    case 'no-such-meme':
-    case 'no-such-index': {
-      args.push(extra.name);
-      break;
-    }
-    case 'image-number-mismatch':
-    case 'text-number-mismatch': {
-      const { params, currentNum } = extra as ImageOrTextNumberMismatchExtra;
-      const range =
-        type === 'image-number-mismatch'
-          ? formatRange(params.min_images, params.max_images)
-          : formatRange(params.min_texts, params.max_texts);
-      args.push(range, currentNum);
-      break;
-    }
-    default:
-      break;
-  }
+  const args =
+    type in memeErrorArgFormatters
+      ? memeErrorArgFormatters[type as keyof MemeErrorExtraMap](extra)
+      : [];
   return h.i18n(`memes-api.errors.${type}`, args);
 }
 
