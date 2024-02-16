@@ -1,4 +1,3 @@
-import FormData from 'form-data';
 import { existsSync } from 'fs';
 import { mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { Quester, h } from 'koishi';
@@ -301,9 +300,11 @@ export class MemeSource {
 
     const formData = new FormData();
     images?.forEach((image, i) =>
-      formData.append('images', image.data, {
-        filename: `image${i}.${image.mime.split('/')[1]}`,
-      })
+      formData.append(
+        'images',
+        new Blob([image.data], { type: image.mime }),
+        `image${i}.${image.mime.split('/')[1]}`
+      )
     );
     texts?.forEach((text) => formData.append('texts', text));
     if (args) formData.append('args', JSON.stringify(args));
@@ -313,7 +314,7 @@ export class MemeSource {
         method: 'POST',
         url: `/memes/${key}`,
         data: formData,
-        headers: formData.getHeaders(),
+        headers: { 'Content-Type': 'multipart/form-data' },
         responseType: 'arraybuffer',
       })
     );
