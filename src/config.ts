@@ -1,4 +1,5 @@
 import { Quester, Schema } from 'koishi';
+
 import { configLocale } from './locale';
 
 interface ICommandConfig {

@@ -1,9 +1,10 @@
 import { existsSync } from 'fs';
 import { mkdir, readFile, rm, writeFile } from 'fs/promises';
-import { Quester, h } from 'koishi';
 import path from 'path';
 
-import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { h } from 'koishi';
+import { HTTP } from 'undios';
+
 import { IConfig } from './config';
 import { logger } from './const';
 import { MemeError } from './error';
@@ -39,7 +40,7 @@ export interface MemeInfoWithName extends MemeInfo {
 
 export interface ReturnFile {
   mime: string;
-  data: Buffer;
+  data: ArrayBuffer;
 }
 
 export interface ReturnError {
@@ -90,9 +91,9 @@ export interface RenderMemeData {
 }
 // #endregion
 
-export function getRetFileByResp(resp: AxiosResponse<Buffer>): ReturnFile {
+export function getRetFileByResp(resp: HTTP.Response<ArrayBuffer>): ReturnFile {
   return {
-    mime: resp.headers['content-type'] ?? '',
+    mime: resp.headers.get('content-type') ?? '',
     data: resp.data,
   };
 }
@@ -104,7 +105,7 @@ export class MemeSource {
 
   protected previewCacheJsonPath: string;
 
-  constructor(protected config: IConfig, protected http: Quester) {
+  constructor(protected config: IConfig, protected http: HTTP) {
     this.previewCacheJsonPath = path.join(
       this.config.cacheDir,
       `preview_path.json`
@@ -228,11 +229,17 @@ export class MemeSource {
     return [memeInfo, isIndex];
   }
 
-  async request<T = any, D = any>(
-    config: AxiosRequestConfig<D> = {}
-  ): Promise<AxiosResponse<T, D>> {
+  async request<K extends keyof HTTP.ResponseTypes>(
+    url: string,
+    config: HTTP.RequestConfig & { responseType: K }
+  ): Promise<HTTP.Response<HTTP.ResponseTypes[K]>>;
+  async request(
+    url: string,
+    config?: HTTP.RequestConfig
+  ): Promise<HTTP.Response<string>>;
+  async request(url: string, config: any = {}): Promise<HTTP.Response> {
     try {
-      return (await this.http.axios({ ...config } as any)) as any;
+      return await this.http(url, { responseType: 'text', ...config });
     } catch (e) {
       throw new MemeError(e);
     }
@@ -243,9 +250,8 @@ export class MemeSource {
     if (cache) return cache;
 
     const resp = getRetFileByResp(
-      await this.request({
+      await this.request('/memes/render_list', {
         method: 'POST',
-        url: '/memes/render_list',
         responseType: 'arraybuffer',
         data: { meme_list: this.keys.map((key) => ({ meme_key: key })) },
       })
@@ -256,16 +262,13 @@ export class MemeSource {
   }
 
   async getKeys(): Promise<string[]> {
-    return (
-      await this.request({
-        method: 'GET',
-        url: '/memes/keys',
-      })
-    ).data;
+    return JSON.parse(
+      (await this.request('/memes/keys', { method: 'GET' })).data
+    );
   }
 
   async getInfo(key: string): Promise<MemeInfo> {
-    return (await this.request({ url: `/memes/${key}/info` })).data;
+    return JSON.parse((await this.request(`/memes/${key}/info`)).data);
   }
 
   async renderPreview(key: string): Promise<ReturnFile> {
@@ -273,9 +276,8 @@ export class MemeSource {
     if (cache) return cache;
 
     const resp = getRetFileByResp(
-      await this.request({
+      await this.request(`/memes/${key}/preview`, {
         method: 'GET',
-        url: `/memes/${key}/preview`,
         responseType: 'arraybuffer',
       })
     );
@@ -285,13 +287,14 @@ export class MemeSource {
   }
 
   async parseArgs(key: string, args: string[]): Promise<Record<string, any>> {
-    return (
-      await this.request({
-        method: 'POST',
-        url: `/memes/${key}/parse_args`,
-        data: args,
-      })
-    ).data;
+    return JSON.parse(
+      (
+        await this.request(`/memes/${key}/parse_args`, {
+          method: 'POST',
+          data: args,
+        })
+      ).data
+    );
   }
 
   // TODO cache rendered meme
@@ -299,22 +302,20 @@ export class MemeSource {
     const { images, texts, args } = data;
 
     const formData = new FormData();
-    images?.forEach((image, i) =>
+    images?.forEach((image) =>
       formData.append(
         'images',
-        new Blob([image.data], { type: image.mime }),
-        `image${i}.${image.mime.split('/')[1]}`
+        new Blob([image.data], { type: image.mime })
+        // `image${i}.${image.mime.split('/')[1]}`
       )
     );
     texts?.forEach((text) => formData.append('texts', text));
     if (args) formData.append('args', JSON.stringify(args));
 
     return getRetFileByResp(
-      await this.request({
+      await this.request(`/memes/${key}/`, {
         method: 'POST',
-        url: `/memes/${key}`,
         data: formData,
-        headers: { 'Content-Type': 'multipart/form-data' },
         responseType: 'arraybuffer',
       })
     );

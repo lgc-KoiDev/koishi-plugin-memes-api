@@ -1,6 +1,5 @@
-import { Quester, h } from 'koishi';
-
-import type { AxiosResponse } from 'axios';
+import { h } from 'koishi';
+import { HTTP } from 'undios';
 
 import type { MemeParams } from './data-source';
 import { formatRange } from './utils';
@@ -113,19 +112,19 @@ export class MemeError extends Error {
 
   get message(): string {
     return this.code
-      ? `[${this.code}] ${this.type}`
+      ? `[${this.code}] ${this.type} ${this.response}`
       : `${getErrorType()} (${this.error})`;
   }
 
   get code(): number | undefined {
-    if (Quester.isAxiosError(this.error)) {
+    if (HTTP.Error.is(this.error)) {
       return this.error.response?.status ?? undefined;
     }
     return undefined;
   }
 
-  get response(): AxiosResponse | undefined {
-    if (Quester.isAxiosError(this.error)) {
+  get response(): HTTP.Response | undefined {
+    if (HTTP.Error.is(this.error)) {
       return this.error.response as any;
     }
     return undefined;

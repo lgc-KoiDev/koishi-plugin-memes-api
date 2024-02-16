@@ -251,9 +251,9 @@ export async function apply(ctx: Context, config: IConfig) {
       try {
         const imageUrls = await Promise.all(imageUrlOrTasks);
         const tasks = imageUrls.map((url) =>
-          ctx.http.axios({ url, responseType: 'arraybuffer' })
+          ctx.http(url, { responseType: 'arraybuffer' })
         );
-        images = (await Promise.all(tasks)).map(getRetFileByResp as any);
+        images = (await Promise.all(tasks)).map(getRetFileByResp);
       } catch (e) {
         if (e instanceof UnsupportedPlatformError) {
           return h.i18n('memes-api.errors.platform-not-supported', [
