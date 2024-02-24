@@ -1,5 +1,6 @@
 lib
 dist
+external
 
 node_modules
 npm-debug.log
@@ -15,3 +16,5 @@ tsconfig.tsbuildinfo
 *.ntvs*
 *.njsproj
 *.sln
+
+.yarn
