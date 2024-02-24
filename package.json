@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-memes-api",
   "description": "表情包制作插件调用 API 版",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -39,10 +39,6 @@
     ]
   },
   "peerDependencies": {
-    "koishi": "^4.17.0-beta.4"
-  },
-  "optionalDependencies": {
-    "@koishijs/plugin-adapter-telegram": "^4.3.0"
-  },
-  "dependencies": {}
+    "koishi": "^4.17.1"
+  }
 }

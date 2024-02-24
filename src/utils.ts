@@ -1,4 +1,3 @@
-import {} from '@koishijs/plugin-adapter-telegram';
 import { Context, Session, h } from 'koishi';
 
 export class UnsupportedPlatformError extends Error {
@@ -76,19 +75,14 @@ export async function getAvatarUrlFromID(
   session: Session,
   user: string
 ): Promise<string> {
+  const { avatar } = await session.bot.getUser(user);
+  if (avatar) return avatar;
+
   const { platform } = session;
-  switch (platform) {
-    case 'onebot':
-    case 'red':
-      return `https://q1.qlogo.cn/g?b=qq&nk=${user}&s=640`;
-    case 'telegram': {
-      const avatar = (await session.telegram?.bot.getUser(user))?.avatar;
-      if (!avatar) break;
-      return avatar;
-    }
-    default:
-      break;
-  }
+  // switch (platform) {
+  //   default:
+  //     break;
+  // }
   throw new UnsupportedPlatformError(
     `Unsupported platform '${platform}' or unsupported session`
   );
