@@ -1,4 +1,6 @@
 import {} from '@koishijs/plugin-adapter-telegram';
+import {} from 'koishi-plugin-adapter-iirose';
+
 import { Context, Session, h } from 'koishi';
 
 export class UnsupportedPlatformError extends Error {
@@ -83,6 +85,11 @@ export async function getAvatarUrlFromID(
       return `https://q1.qlogo.cn/g?b=qq&nk=${user}&s=640`;
     case 'telegram': {
       const avatar = (await session.telegram?.bot.getUser(user))?.avatar;
+      if (!avatar) break;
+      return avatar;
+    }
+    case 'iirose' : {
+      const avatar = (await session.bot.getUser(user))?.avatar;
       if (!avatar) break;
       return avatar;
     }
