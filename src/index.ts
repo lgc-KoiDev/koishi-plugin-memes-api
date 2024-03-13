@@ -32,9 +32,8 @@ export const usage = `
 
 declare module 'koishi' {
   interface Session {
-    memeFromShortcut?: boolean;
     memePfxMatched?: string;
-    memeRegexMatched: string[];
+    memeRegexMatched?: string[];
   }
 }
 
@@ -302,7 +301,8 @@ export async function apply(ctx: Context, config: IConfig) {
           plainTxt.slice(0, plainTxt.indexOf(name) + name.length);
         return generateMeme(session, name, pfx);
       })();
-      if (!session?.memeFromShortcut || rh?.type !== 'i18n') return rh;
+      const fromShortcut = session.memeRegexMatched || session.memePfxMatched;
+      if (!fromShortcut || rh?.type !== 'i18n') return rh;
 
       const errPfx = 'memes-api.errors.';
       const i18nPath = rh.attrs.path as string;
@@ -350,7 +350,6 @@ export async function apply(ctx: Context, config: IConfig) {
     }
 
     ctx.middleware(async (session, next) => {
-      session.memeFromShortcut = true;
       if (!session.elements) return undefined;
 
       const content = extractPlaintext(session.elements).trim();

@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-memes-api",
   "description": "表情包制作插件调用 API 版",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
