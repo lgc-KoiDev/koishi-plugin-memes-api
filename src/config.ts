@@ -6,6 +6,7 @@ interface ICommandConfig {
   enableShortcut: boolean;
   silentShortcut?: boolean;
   moreSilent?: boolean;
+  autoUseDefaultTexts: boolean;
   autoUseSenderAvatarWhenOnlyOne: boolean;
   autoUseSenderAvatarWhenOneLeft: boolean;
 }
@@ -54,6 +55,9 @@ const shortcutCmdCfgWithMoreSilent = Schema.intersect([
 const commandConfig: Schema<ICommandConfig> = Schema.intersect([
   shortcutCmdCfgWithMoreSilent,
   Schema.object({
+    autoUseDefaultTexts: Schema.boolean()
+      .default(true)
+      .description(configLocale.command.autoUseDefaultTexts),
     autoUseSenderAvatarWhenOnlyOne: Schema.boolean()
       .default(true)
       .description(configLocale.command.autoUseSenderAvatarWhenOnlyOne),

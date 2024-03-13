@@ -30,8 +30,16 @@ export const usage = `
 如果想要刷新表情列表，请重载本插件。
 `.trim();
 
+declare module 'koishi' {
+  interface Session {
+    memeFromShortcut?: boolean;
+    memePfxMatched?: string;
+    memeRegexMatched: string[];
+  }
+}
+
 function wrapError<TA extends any[], TR>(
-  action: (...args: TA) => Promise<TR>
+  action: (...args: TA) => Promise<TR>,
 ): (...args: TA) => Promise<TR | h> {
   return async (...args) => {
     try {
@@ -70,10 +78,10 @@ export async function apply(ctx: Context, config: IConfig) {
         h.i18n(
           config.enableShortcut
             ? 'memes-api.list.tip'
-            : 'memes-api.list.tip-no-shortcut'
+            : 'memes-api.list.tip-no-shortcut',
         ),
         returnFileToElem(await source.renderList()),
-      ])
+      ]),
     );
 
   const cmdInfo = command.subcommand('.info <name:string>').action(
@@ -116,12 +124,12 @@ export async function apply(ctx: Context, config: IConfig) {
       msg.push(
         h.i18n('memes-api.info.image-num', [
           formatRange(min_images, max_images),
-        ])
+        ]),
       );
       msg.push('\n');
 
       msg.push(
-        h.i18n('memes-api.info.text-num', [formatRange(min_texts, max_texts)])
+        h.i18n('memes-api.info.text-num', [formatRange(min_texts, max_texts)]),
       );
       msg.push('\n');
 
@@ -129,7 +137,7 @@ export async function apply(ctx: Context, config: IConfig) {
         msg.push(
           h.i18n('memes-api.info.default-texts', [
             default_texts.map((x) => `"${x}"`).join(', '),
-          ])
+          ]),
         );
         msg.push('\n');
       }
@@ -145,11 +153,11 @@ export async function apply(ctx: Context, config: IConfig) {
       msg.push(
         h.i18n('memes-api.info.preview', [
           returnFileToElem(await source.renderPreview(meme.key)),
-        ])
+        ]),
       );
 
       return msg;
-    })
+    }),
   );
 
   // TODO 重构屎山，用 `h.parse` 解析消息元素
@@ -158,7 +166,7 @@ export async function apply(ctx: Context, config: IConfig) {
       session: Session<any, any>,
       name: string,
       prefix: string,
-      matched?: string[]
+      matched?: string[],
     ) => {
       if (!session.elements) return undefined;
 
@@ -179,7 +187,7 @@ export async function apply(ctx: Context, config: IConfig) {
         texts.push(...matched);
       } else {
         const splitted = splitArg(
-          extractPlaintext(session.elements).replace(prefix, '')
+          extractPlaintext(session.elements).replace(prefix, ''),
         );
         const realArgs = splitted.filter((x) => x !== '自己');
         selfLen = splitted.length - realArgs.length;
@@ -195,7 +203,7 @@ export async function apply(ctx: Context, config: IConfig) {
         imageUrlOrTasks.push(
           ...session.quote.elements
             .filter((x) => x.type === 'img')
-            .map((x) => x.attrs.src as string)
+            .map((x) => x.attrs.src as string),
         );
       }
       for (const ele of session.elements.slice(1)) {
@@ -233,7 +241,8 @@ export async function apply(ctx: Context, config: IConfig) {
         if (autoUseAvatar) imageUrlOrTasks.unshift(senderAvatar);
       }
 
-      if (!texts.length) texts.push(...params.default_texts);
+      if (!texts.length && config.autoUseDefaultTexts)
+        texts.push(...params.default_texts);
       const currentImgNum = imageUrlOrTasks.length;
       const currentTextNum = texts.length;
       if (
@@ -251,7 +260,7 @@ export async function apply(ctx: Context, config: IConfig) {
       try {
         const imageUrls = await Promise.all(imageUrlOrTasks);
         const tasks = imageUrls.map((url) =>
-          ctx.http(url, { responseType: 'arraybuffer' })
+          ctx.http(url, { responseType: 'arraybuffer' }),
         );
         images = (await Promise.all(tasks)).map(getRetFileByResp);
       } catch (e) {
@@ -275,18 +284,40 @@ export async function apply(ctx: Context, config: IConfig) {
       }
 
       return returnFileToElem(img);
-    }
+    },
   );
 
   command
     .subcommand('.generate <name:string> [...args]')
-    .action(({ session }, name) => {
+    .action(async ({ session }, name) => {
       if (!session || !session.elements) return undefined;
       if (!name) return session.execute('help meme.generate');
 
-      const plainTxt = extractPlaintext(session.elements);
-      const pfx = plainTxt.slice(0, plainTxt.indexOf(name) + name.length);
-      return generateMeme(session, name, pfx);
+      const rh = await (() => {
+        if (session.memeRegexMatched)
+          return generateMeme(session, name, '', session.memeRegexMatched);
+        const plainTxt = extractPlaintext(session.elements);
+        const pfx =
+          session.memePfxMatched ??
+          plainTxt.slice(0, plainTxt.indexOf(name) + name.length);
+        return generateMeme(session, name, pfx);
+      })();
+      if (!session?.memeFromShortcut || rh?.type !== 'i18n') return rh;
+
+      const errPfx = 'memes-api.errors.';
+      const i18nPath = rh.attrs.path as string;
+      const i18nArgs = rh.children as any[];
+      if (i18nPath && i18nPath.startsWith(errPfx)) {
+        const errType = i18nPath.slice(errPfx.length);
+        if (
+          config.silentShortcut &&
+          (config.moreSilent || paramErrorTypes.includes(errType as any))
+        ) {
+          logger.warn(`Silenced error: ${getI18N(ctx, i18nPath, i18nArgs)}`);
+          return undefined;
+        }
+      }
+      return rh;
     });
 
   if (config.enableShortcut) {
@@ -319,41 +350,26 @@ export async function apply(ctx: Context, config: IConfig) {
     }
 
     ctx.middleware(async (session, next) => {
+      session.memeFromShortcut = true;
       if (!session.elements) return undefined;
 
       const content = extractPlaintext(session.elements).trim();
-
-      const generate = async (
-        ...rest: Parameters<typeof generateMeme>
-      ): Promise<h | undefined> => {
-        const rh = await generateMeme(...rest);
-        if (rh?.type !== 'i18n') return rh;
-
-        const errPfx = 'memes-api.errors.';
-        const i18nPath = rh.attrs.path as string;
-        const i18nArgs = rh.children as any[];
-        if (i18nPath && i18nPath.startsWith(errPfx)) {
-          const errType = i18nPath.slice(errPfx.length);
-          if (
-            config.silentShortcut &&
-            (config.moreSilent || paramErrorTypes.includes(errType as any))
-          ) {
-            logger.warn(`Silenced error: ${getI18N(ctx, i18nPath, i18nArgs)}`);
-            return undefined;
-          }
-        }
-        return rh;
-      };
 
       for (const match of matches) {
         const { key, prefixes, patterns } = match;
 
         for (const pfx of prefixes) {
-          if (content.startsWith(pfx)) return generate(session, key, pfx);
+          if (content.startsWith(pfx)) {
+            session.memePfxMatched = pfx;
+            return session.execute(`meme.generate ${key}`);
+          }
         }
         for (const ptn of patterns) {
           const ptnMatch = content.match(ptn);
-          if (ptnMatch) return generate(session, key, '', ptnMatch.slice(2));
+          if (ptnMatch) {
+            session.memeRegexMatched = ptnMatch.slice(2);
+            return session.execute(`meme.generate ${key}`);
+          }
         }
       }
 
