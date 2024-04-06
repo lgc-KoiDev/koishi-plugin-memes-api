@@ -30,9 +30,10 @@ memes-api:
     unexpected-error: 出现意外错误。
 
     text-or-name-not-enough: 文字或名字数量不足。
-    platform-not-supported: 平台 “{0}” 暂不支持获取头像，请使用图片输入。
+    # platform-not-supported: 平台 “{0}” 暂不支持获取头像，请使用图片输入。
     download-avatar-failed: 下载头像失败。
     no-such-index: 不存在序号为 {0} 的表情！
+    can-not-get-avatar: 无法获取平台 {0} 中用户 ID 为 {1} 的头像。
 
   list:
     tip: |-

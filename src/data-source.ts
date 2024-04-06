@@ -61,6 +61,7 @@ export type FontWeight =
   | 'bold'
   | 'ultrabold'
   | 'heavy';
+export type UserInfoGender = 'male' | 'female' | 'unknown';
 
 export interface MemeKeyWithProperties {
   meme_key: string;
@@ -84,10 +85,15 @@ export interface RenderMemeList {
   fallback_fonts?: string[];
 }
 
+export interface MemeUserInfo {
+  name: string;
+  gender: UserInfoGender;
+}
+
 export interface RenderMemeData {
   images?: ReturnFile[];
   texts?: string[];
-  args?: Record<string, any>;
+  args?: { user_infos: MemeUserInfo[] } & Record<string, any>;
 }
 // #endregion
 
@@ -105,10 +111,13 @@ export class MemeSource {
 
   protected previewCacheJsonPath: string;
 
-  constructor(protected config: IConfig, protected http: HTTP) {
+  constructor(
+    protected config: IConfig,
+    protected http: HTTP,
+  ) {
     this.previewCacheJsonPath = path.join(
       this.config.cacheDir,
-      `preview_path.json`
+      `preview_path.json`,
     );
   }
 
@@ -177,7 +186,7 @@ export class MemeSource {
       JSON.stringify({
         ...(await this.readCachedPreviewPath()),
         [key]: cachePath,
-      })
+      }),
     );
   }
 
@@ -186,7 +195,7 @@ export class MemeSource {
 
     const cachePath = path.join(
       this.config.cacheDir,
-      `preview_${key}.${file.mime.split('/')[1]}`
+      `preview_${key}.${file.mime.split('/')[1]}`,
     );
     await writeFile(cachePath, Buffer.from(file.data));
     await this.writeCachedPreviewPath(key, cachePath);
@@ -231,13 +240,14 @@ export class MemeSource {
 
   async request<K extends keyof HTTP.ResponseTypes>(
     url: string,
-    config: HTTP.RequestConfig & { responseType: K }
+    config: HTTP.RequestConfig & { responseType: K },
   ): Promise<HTTP.Response<HTTP.ResponseTypes[K]>>;
   async request(
     url: string,
-    config?: HTTP.RequestConfig
+    config?: HTTP.RequestConfig,
   ): Promise<HTTP.Response<string>>;
   async request(url: string, config: any = {}): Promise<HTTP.Response> {
+    // logger.debug(`Requesting \`${url}\` with config`, config);
     try {
       return await this.http(url, { responseType: 'text', ...config });
     } catch (e) {
@@ -254,7 +264,7 @@ export class MemeSource {
         method: 'POST',
         responseType: 'arraybuffer',
         data: { meme_list: this.keys.map((key) => ({ meme_key: key })) },
-      })
+      }),
     );
 
     await this.cachePreview('list', resp);
@@ -263,7 +273,7 @@ export class MemeSource {
 
   async getKeys(): Promise<string[]> {
     return JSON.parse(
-      (await this.request('/memes/keys', { method: 'GET' })).data
+      (await this.request('/memes/keys', { method: 'GET' })).data,
     );
   }
 
@@ -279,7 +289,7 @@ export class MemeSource {
       await this.request(`/memes/${key}/preview`, {
         method: 'GET',
         responseType: 'arraybuffer',
-      })
+      }),
     );
 
     await this.cachePreview(key, resp);
@@ -293,7 +303,7 @@ export class MemeSource {
           method: 'POST',
           data: args,
         })
-      ).data
+      ).data,
     );
   }
 
@@ -305,9 +315,9 @@ export class MemeSource {
     images?.forEach((image) =>
       formData.append(
         'images',
-        new Blob([image.data], { type: image.mime })
+        new Blob([image.data], { type: image.mime }),
         // `image${i}.${image.mime.split('/')[1]}`
-      )
+      ),
     );
     texts?.forEach((text) => formData.append('texts', text));
     if (args) formData.append('args', JSON.stringify(args));
@@ -317,7 +327,7 @@ export class MemeSource {
         method: 'POST',
         data: formData,
         responseType: 'arraybuffer',
-      })
+      }),
     );
   }
 

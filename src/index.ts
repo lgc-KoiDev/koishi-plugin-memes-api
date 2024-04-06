@@ -4,6 +4,7 @@ import { Config, IConfig } from './config';
 import { logger } from './const';
 import {
   MemeSource,
+  MemeUserInfo,
   ReturnFile,
   getRetFileByResp,
   returnFileToElem,
@@ -11,13 +12,11 @@ import {
 import { MemeError, formatError, paramErrorTypes } from './error';
 import { locale } from './locale';
 import {
-  UnsupportedPlatformError,
-  extractPlaintext,
-  formatRange,
-  getAvatarUrlFromID,
-  getI18N,
-  splitArg,
-} from './utils';
+  CanNotGetAvatarError,
+  ImageAndUserInfo,
+  getInfoFromID,
+} from './user-info';
+import { extractPlaintext, formatRange, getI18N, splitArg } from './utils';
 
 export { name } from './const';
 export { Config };
@@ -176,11 +175,12 @@ export async function apply(ctx: Context, config: IConfig) {
         });
       const { key, params } = meme;
 
-      const imageUrlOrTasks: (string | Promise<string>)[] = [];
+      const imageInfoTasks: (ImageAndUserInfo | Promise<ImageAndUserInfo>)[] =
+        [];
       const texts: string[] = [];
       const args: Record<string, string> = {};
 
-      let selfLen = 0;
+      const getSenderInfo = () => getInfoFromID(session, session.author.id);
 
       if (matched) {
         texts.push(...matched);
@@ -188,8 +188,17 @@ export async function apply(ctx: Context, config: IConfig) {
         const splitted = splitArg(
           extractPlaintext(session.elements).replace(prefix, ''),
         );
-        const realArgs = splitted.filter((x) => x !== '自己');
-        selfLen = splitted.length - realArgs.length;
+        const realArgs = splitted.filter((x) => {
+          if (x === '自己' || x === '@自己') {
+            imageInfoTasks.push(getSenderInfo());
+            return false;
+          }
+          if (x.startsWith('@')) {
+            imageInfoTasks.push(getInfoFromID(session, x.slice(1)));
+            return false;
+          }
+          return true;
+        });
 
         const parsedParams = await source.parseArgs(key, realArgs);
         texts.push(...parsedParams.texts);
@@ -199,20 +208,21 @@ export async function apply(ctx: Context, config: IConfig) {
       }
 
       if (session.quote?.elements) {
-        imageUrlOrTasks.push(
+        imageInfoTasks.push(
           ...session.quote.elements
             .filter((x) => x.type === 'img')
-            .map((x) => x.attrs.src as string),
+            .map((x) => ({ url: x.attrs.src as string })),
         );
       }
       for (const ele of session.elements.slice(1)) {
         // 需要忽略回复转化为的 at，第一个不是 at 就是指令，可以放心忽略（应该
-        if (ele.type === 'img') imageUrlOrTasks.push(ele.attrs.src as string);
+        if (ele.type === 'img')
+          imageInfoTasks.push({ url: ele.attrs.src as string });
         if (ele.type === 'at')
-          imageUrlOrTasks.push(getAvatarUrlFromID(session, ele.attrs.id));
+          imageInfoTasks.push(getInfoFromID(session, ele.attrs.id as string));
       }
 
-      const imageArgLen = imageUrlOrTasks.length + selfLen;
+      const imageArgLen = imageInfoTasks.length;
       const autoUseAvatar = !!(
         (config.autoUseSenderAvatarWhenOnlyOne &&
           !imageArgLen &&
@@ -221,28 +231,13 @@ export async function apply(ctx: Context, config: IConfig) {
           imageArgLen &&
           imageArgLen + 1 === meme.params.min_images)
       );
-      if (selfLen || autoUseAvatar) {
-        let senderAvatar;
-        try {
-          senderAvatar =
-            session.author?.avatar ??
-            (await getAvatarUrlFromID(session, session.author.id));
-        } catch (e) {
-          logger.error(e);
-        }
-        if (!senderAvatar) {
-          return h.i18n('memes-api.errors.platform-not-supported', [
-            session.platform,
-          ]);
-        }
-
-        if (selfLen) imageUrlOrTasks.push(...Array(selfLen).fill(senderAvatar));
-        if (autoUseAvatar) imageUrlOrTasks.unshift(senderAvatar);
+      if (autoUseAvatar) {
+        imageInfoTasks.unshift(getSenderInfo());
       }
 
       if (!texts.length && config.autoUseDefaultTexts)
         texts.push(...params.default_texts);
-      const currentImgNum = imageUrlOrTasks.length;
+      const currentImgNum = imageInfoTasks.length;
       const currentTextNum = texts.length;
       if (
         currentImgNum < params.min_images ||
@@ -256,16 +251,22 @@ export async function apply(ctx: Context, config: IConfig) {
         return formatError('text-number-mismatch', { params, currentTextNum });
 
       let images: ReturnFile[];
+      let userInfos: MemeUserInfo[];
       try {
-        const imageUrls = await Promise.all(imageUrlOrTasks);
-        const tasks = imageUrls.map((url) =>
+        const imageInfos = await Promise.all(imageInfoTasks);
+        const avatars = await Promise.all(imageInfos.map((x) => x.url));
+        const tasks = avatars.map((url) =>
           ctx.http(url, { responseType: 'arraybuffer' }),
         );
         images = (await Promise.all(tasks)).map(getRetFileByResp);
+        userInfos = imageInfos.map(
+          (x) => x.user_info ?? { name: '', gender: 'unknown' },
+        );
       } catch (e) {
-        if (e instanceof UnsupportedPlatformError) {
-          return h.i18n('memes-api.errors.platform-not-supported', [
-            session.platform,
+        if (e instanceof CanNotGetAvatarError) {
+          return h.i18n('memes-api.errors.can-not-get-avatar', [
+            e.platform,
+            e.userId,
           ]);
         }
         logger.error(e);
@@ -274,7 +275,11 @@ export async function apply(ctx: Context, config: IConfig) {
 
       let img;
       try {
-        img = await source.renderMeme(key, { images, texts, args });
+        img = await source.renderMeme(key, {
+          images,
+          texts,
+          args: { ...args, user_infos: userInfos },
+        });
       } catch (e) {
         // 这个时候出错可能需要给格式化函数传参，单独 catch 一下
         if (!(e instanceof MemeError)) throw e;

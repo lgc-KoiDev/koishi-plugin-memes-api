@@ -5,10 +5,30 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
+"koishi-plugin-adapter-onebot@npm:^6.5.1":
+  version: 6.5.1
+  resolution: "koishi-plugin-adapter-onebot@npm:6.5.1"
+  dependencies:
+    qface: "npm:^1.4.1"
+  peerDependencies:
+    koishi: ^4.17.3
+  checksum: 10c0/2a78e6c9ab883976d482cf6c1b3cbcd53281aae8b704050ca51bf6d019d117a874d0b942b2a5d708194fe235e056652acfa6186bc65ade88b392f4d6e25a08f6
+  languageName: node
+  linkType: hard
+
 "koishi-plugin-memes-api@workspace:.":
   version: 0.0.0-use.local
   resolution: "koishi-plugin-memes-api@workspace:."
+  dependencies:
+    koishi-plugin-adapter-onebot: "npm:^6.5.1"
   peerDependencies:
-    koishi: ^4.17.1
+    koishi: ^4.17.2
   languageName: unknown
   linkType: soft
+
+"qface@npm:^1.4.1":
+  version: 1.4.1
+  resolution: "qface@npm:1.4.1"
+  checksum: 10c0/64f84389b120c3a9b3408eacbedf1eac895ab19abdf4341a8610cdc6eff1b1c92024083b342ea091f2fe897544aefb57bd5a509f4483daeee41403065d7a389c
+  languageName: node
+  linkType: hard
