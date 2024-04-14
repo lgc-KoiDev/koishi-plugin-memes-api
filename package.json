@@ -39,7 +39,7 @@
     ]
   },
   "peerDependencies": {
-    "koishi": "^4.17.3"
+    "koishi": "^4.17.4"
   },
   "devDependencies": {
     "koishi-plugin-adapter-onebot": "^6.5.1"
