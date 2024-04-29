@@ -2,8 +2,8 @@ import { existsSync } from 'fs'
 import { mkdir, readFile, rm, writeFile } from 'fs/promises'
 import path from 'path'
 
+import { HTTP } from '@cordisjs/plugin-http'
 import { h } from 'koishi'
-import { HTTP } from 'undios'
 
 import { IConfig } from './config'
 import { logger } from './const'

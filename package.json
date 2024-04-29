@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-memes-api",
   "description": "表情包制作插件调用 API 版",
-  "version": "0.1.24",
+  "version": "0.1.25",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -39,7 +39,7 @@
     ]
   },
   "peerDependencies": {
-    "koishi": "^4.17.4"
+    "koishi": "^4.17.5"
   },
   "devDependencies": {
     "koishi-plugin-adapter-onebot": "^6.5.3"

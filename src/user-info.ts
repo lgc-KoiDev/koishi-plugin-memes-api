@@ -26,7 +26,7 @@ export async function getInfoFromID(
   const platformSpecific: Record<string, () => Promise<ImageAndUserInfo>> = {
     onebot: async () => {
       const url = `http://q.qlogo.cn/headimg_dl?dst_uin=${userId}&spec=640`
-      const bot = session.bot as OneBotBot<Context>
+      const bot = session.bot as any as OneBotBot<Context>
 
       if (session.isDirect) {
         const data = await bot.internal.getStrangerInfo(userId)

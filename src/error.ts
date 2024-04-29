@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
+import { HTTP } from '@cordisjs/plugin-http'
 import { h } from 'koishi'
-import { HTTP } from 'undios'
 
 import type { MemeParams } from './data-source'
 import { formatRange } from './utils'
