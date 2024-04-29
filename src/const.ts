@@ -1,5 +1,5 @@
-import { Logger } from 'koishi';
+import { Logger } from 'koishi'
 
-export const name = 'memes-api';
+export const name = 'memes-api'
 
-export const logger = new Logger(name);
+export const logger = new Logger(name)

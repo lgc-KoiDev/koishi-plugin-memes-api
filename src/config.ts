@@ -1,32 +1,32 @@
-import { Quester, Schema } from 'koishi';
+import { Quester, Schema } from 'koishi'
 
-import { configLocale } from './locale';
+import { configLocale } from './locale'
 
 interface ICommandConfig {
-  enableShortcut: boolean;
-  silentShortcut?: boolean;
-  moreSilent?: boolean;
-  autoUseDefaultTexts: boolean;
-  autoUseSenderAvatarWhenOnlyOne: boolean;
-  autoUseSenderAvatarWhenOneLeft: boolean;
+  enableShortcut: boolean
+  silentShortcut?: boolean
+  moreSilent?: boolean
+  autoUseDefaultTexts: boolean
+  autoUseSenderAvatarWhenOnlyOne: boolean
+  autoUseSenderAvatarWhenOneLeft: boolean
 }
 
 interface ICacheConfig {
-  cacheDir: string;
-  keepCache: boolean;
+  cacheDir: string
+  keepCache: boolean
 }
 
 interface IRequestConfig {
-  requestConfig: Quester.Config;
+  requestConfig: Quester.Config
 }
 
-export type IConfig = ICommandConfig & ICacheConfig & IRequestConfig;
+export type IConfig = ICommandConfig & ICacheConfig & IRequestConfig
 
 const shortcutCmdConfig = Schema.object({
   enableShortcut: Schema.boolean()
     .default(true)
     .description(configLocale.command.enableShortcut),
-}).description(configLocale.command.title);
+}).description(configLocale.command.title)
 const shortcutCmdCfgWithSilent = Schema.intersect([
   shortcutCmdConfig,
   Schema.union([
@@ -38,7 +38,7 @@ const shortcutCmdCfgWithSilent = Schema.intersect([
     }),
     Schema.object({}),
   ]),
-]);
+])
 const shortcutCmdCfgWithMoreSilent = Schema.intersect([
   shortcutCmdCfgWithSilent,
   Schema.union([
@@ -51,7 +51,7 @@ const shortcutCmdCfgWithMoreSilent = Schema.intersect([
     }),
     Schema.object({}),
   ]),
-]);
+])
 const commandConfig: Schema<ICommandConfig> = Schema.intersect([
   shortcutCmdCfgWithMoreSilent,
   Schema.object({
@@ -65,7 +65,7 @@ const commandConfig: Schema<ICommandConfig> = Schema.intersect([
       .default(true)
       .description(configLocale.command.autoUseSenderAvatarWhenOneLeft),
   }),
-]);
+])
 
 const cacheConfig: Schema<ICacheConfig> = Schema.object({
   cacheDir: Schema.path({ filters: ['directory'], allowCreate: true })
@@ -74,14 +74,14 @@ const cacheConfig: Schema<ICacheConfig> = Schema.object({
   keepCache: Schema.boolean()
     .default(false)
     .description(configLocale.cache.keepCache),
-}).description(configLocale.cache.title);
+}).description(configLocale.cache.title)
 
 const requestConfig: Schema<IRequestConfig> = Schema.object({
   requestConfig: Quester.createConfig('http://127.0.0.1:2233'),
-});
+})
 
 export const Config: Schema<IConfig> = Schema.intersect([
   commandConfig,
   cacheConfig,
   requestConfig,
-]);
+])
