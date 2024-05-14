@@ -23,6 +23,8 @@ import { extractPlaintext, formatRange, getI18N, splitArg } from './utils'
 export { name } from './const'
 export { Config }
 
+export const inject = ['http']
+
 export const usage = `
 如果插件没有注册 \`meme\` 指令，请检查你的请求设置是否正确，以及 \`meme-generator\` 是否正常部署。  
 [点我跳转 meme-generator 部署文档](https://github.com/MeetWq/meme-generator#%E6%9C%AC%E5%9C%B0%E5%AE%89%E8%A3%85)
