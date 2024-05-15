@@ -44,6 +44,7 @@
     ]
   },
   "peerDependencies": {
+    "@cordisjs/plugin-http": "^0.4.2",
     "koishi": "^4.17.6"
   },
   "devDependencies": {
