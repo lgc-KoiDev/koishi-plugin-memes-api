@@ -3,7 +3,7 @@
 import { HTTP } from '@cordisjs/plugin-http'
 import { h } from 'koishi'
 
-import type { MemeParams } from './data-source'
+import { MemeParams } from './data-source'
 import { formatRange } from './utils'
 
 export const requestErrorTypes = [

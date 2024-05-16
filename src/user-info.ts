@@ -1,8 +1,9 @@
 import { Context, Session } from 'koishi'
-import type { OneBotBot } from 'koishi-plugin-adapter-onebot'
 
 import { logger } from './const'
 import { MemeUserInfo } from './data-source'
+
+import type { OneBotBot } from 'koishi-plugin-adapter-onebot'
 
 export interface ImageAndUserInfo {
   url: string | Promise<string>
