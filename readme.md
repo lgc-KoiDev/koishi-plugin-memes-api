@@ -3,11 +3,11 @@
 <div align="center">
 
 <a href="https://koishi.chat/zh-CN/market/">
-  <img src="https://raw.githubusercontent.com/lgc2333/koishi-workspace/master/readme/koishi-plugin.png" width="180" height="180" alt="NoneBotPluginLogo">
+  <img src="https://raw.githubusercontent.com/lgc-KoiDev/readme/master/workspace/koishi-plugin.png" width="180" height="180" alt="NoneBotPluginLogo">
 </a>
 
 <p>
-  <img src="https://raw.githubusercontent.com/lgc2333/koishi-workspace/master/readme/KoishiPlugin.svg" width="240" alt="NoneBotPluginText">
+  <img src="https://raw.githubusercontent.com/lgc-KoiDev/readme/master/workspace/KoishiPlugin.svg" width="240" alt="NoneBotPluginText">
 </p>
 
 # Koishi-Plugin-Memes-API
@@ -15,7 +15,7 @@
 _✨ 表情包制作插件调用 API 版 ✨_
 
 <a href="./LICENSE">
-  <img src="https://img.shields.io/github/license/lgc2333/koishi-plugin-memes-api.svg" alt="license">
+  <img src="https://img.shields.io/github/license/lgc-KoiDev/koishi-plugin-memes-api.svg" alt="license">
 </a>
 <a href="https://www.npmjs.com/package/koishi-plugin-memes-api">
   <img src="https://img.shields.io/npm/v/koishi-plugin-memes-api" alt="pypi">
@@ -113,24 +113,24 @@ Telegram：[@lgc2333](https://t.me/lgc2333)
 
 ### 0.1.13
 
-- [#9](https://github.com/lgc2333/koishi-plugin-memes-api/issues/9)：
+- [#9](https://github.com/lgc-KoiDev/koishi-plugin-memes-api/issues/9)：
   - 添加配置项 `autoUseSenderAvatarWhenOnlyOne` 与 `autoUseSenderAvatarWhenOneLeft`
-- [#10](https://github.com/lgc2333/koishi-plugin-memes-api/pull/10)
-- [#11](https://github.com/lgc2333/koishi-plugin-memes-api/pull/11)
+- [#10](https://github.com/lgc-KoiDev/koishi-plugin-memes-api/pull/10)
+- [#11](https://github.com/lgc-KoiDev/koishi-plugin-memes-api/pull/11)
 - 修改图片或文字数量不符的提示信息
 
 ### 0.1.12
 
-- [#7](https://github.com/lgc2333/koishi-plugin-memes-api/issues/7)
+- [#7](https://github.com/lgc-KoiDev/koishi-plugin-memes-api/issues/7)
 
 ### 0.1.11
 
-- fix [#6](https://github.com/lgc2333/koishi-plugin-memes-api/issues/6) `meme ls 的时候会让 gocq 出现无法发图片的情况`
+- fix [#6](https://github.com/lgc-KoiDev/koishi-plugin-memes-api/issues/6) `meme ls 的时候会让 gocq 出现无法发图片的情况`
 - 其他小调整
 
 ### 0.1.10
 
-- `Fix: support red platform` ([#5](https://github.com/lgc2333/koishi-plugin-memes-api/pull/5))
+- `Fix: support red platform` ([#5](https://github.com/lgc-KoiDev/koishi-plugin-memes-api/pull/5))
 
 ### 0.1.9
 
@@ -138,11 +138,11 @@ Telegram：[@lgc2333](https://t.me/lgc2333)
 
 ### 0.1.8
 
-- 给 `meme info` 也加上了序号支持 ([#1](https://github.com/lgc2333/koishi-plugin-memes-api/issues/1))
+- 给 `meme info` 也加上了序号支持 ([#1](https://github.com/lgc-KoiDev/koishi-plugin-memes-api/issues/1))
 
 ### 0.1.7
 
-- `meme generate` 指令可以输入表情编号来调用表情了 ([#1](https://github.com/lgc2333/koishi-plugin-memes-api/issues/1))
+- `meme generate` 指令可以输入表情编号来调用表情了 ([#1](https://github.com/lgc-KoiDev/koishi-plugin-memes-api/issues/1))
 - 重构部分代码
 - 给配置项加上了 i18n
 
