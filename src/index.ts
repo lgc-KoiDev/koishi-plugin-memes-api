@@ -13,11 +13,7 @@ import {
 } from './data-source'
 import { formatError, MemeError, paramErrorTypes } from './error'
 import { locale } from './locale'
-import {
-  CanNotGetAvatarError,
-  getInfoFromID,
-  ImageAndUserInfo,
-} from './user-info'
+import { CanNotGetAvatarError, getInfoFromID, ImageAndUserInfo } from './user-info'
 import { extractPlaintext, formatRange, getI18N, splitArg } from './utils'
 
 export { name } from './const'
@@ -101,14 +97,7 @@ export async function apply(ctx: Context, config: IConfig) {
         key,
         keywords,
         patterns,
-        params: {
-          max_images,
-          max_texts,
-          min_images,
-          min_texts,
-          default_texts,
-          args,
-        },
+        params: { max_images, max_texts, min_images, min_texts, default_texts, args },
       } = meme
 
       const msg: any[] = []
@@ -125,15 +114,11 @@ export async function apply(ctx: Context, config: IConfig) {
       }
 
       msg.push(
-        h.i18n('memes-api.info.image-num', [
-          formatRange(min_images, max_images),
-        ]),
+        h.i18n('memes-api.info.image-num', [formatRange(min_images, max_images)]),
       )
       msg.push('\n')
 
-      msg.push(
-        h.i18n('memes-api.info.text-num', [formatRange(min_texts, max_texts)]),
-      )
+      msg.push(h.i18n('memes-api.info.text-num', [formatRange(min_texts, max_texts)]))
       msg.push('\n')
 
       if (default_texts.length) {
@@ -181,8 +166,7 @@ export async function apply(ctx: Context, config: IConfig) {
       }
       const { key, params } = meme
 
-      const imageInfoTasks: (ImageAndUserInfo | Promise<ImageAndUserInfo>)[] =
-        []
+      const imageInfoTasks: (ImageAndUserInfo | Promise<ImageAndUserInfo>)[] = []
       const texts: string[] = []
       const args: Record<string, string> = {}
 
@@ -248,16 +232,10 @@ export async function apply(ctx: Context, config: IConfig) {
       }
       const currentImgNum = imageInfoTasks.length
       const currentTextNum = texts.length
-      if (
-        currentImgNum < params.min_images ||
-        currentImgNum > params.max_images
-      ) {
+      if (currentImgNum < params.min_images || currentImgNum > params.max_images) {
         return formatError('image-number-mismatch', { params, currentImgNum })
       }
-      if (
-        currentTextNum < params.min_texts ||
-        currentTextNum > params.max_texts
-      ) {
+      if (currentTextNum < params.min_texts || currentTextNum > params.max_texts) {
         return formatError('text-number-mismatch', { params, currentTextNum })
       }
 
@@ -275,10 +253,7 @@ export async function apply(ctx: Context, config: IConfig) {
         )
       } catch (e) {
         if (e instanceof CanNotGetAvatarError) {
-          return h.i18n('memes-api.errors.can-not-get-avatar', [
-            e.platform,
-            e.userId,
-          ])
+          return h.i18n('memes-api.errors.can-not-get-avatar', [e.platform, e.userId])
         }
         logger.error(e)
         return h.i18n('memes-api.errors.download-avatar-failed')
@@ -342,8 +317,7 @@ export async function apply(ctx: Context, config: IConfig) {
     cmdInfo.alias('表情详情').alias('表情帮助').alias('表情示例')
 
     const { prefix: cmdPrefix } = ctx.root.config ?? ''
-    const cmdPrefixes =
-      cmdPrefix instanceof Array ? cmdPrefix : [cmdPrefix as string]
+    const cmdPrefixes = cmdPrefix instanceof Array ? cmdPrefix : [cmdPrefix as string]
     const cmdPrefixRegex = cmdPrefixes.map(escapeRegExp).join('|')
 
     type Match = { key: string; prefixes: string[]; patterns: RegExp[] }

@@ -71,9 +71,7 @@ const cacheConfig: Schema<ICacheConfig> = Schema.object({
   cacheDir: Schema.path({ filters: ['directory'], allowCreate: true })
     .default('cache/memes')
     .description(configLocale.cache.cacheDir),
-  keepCache: Schema.boolean()
-    .default(false)
-    .description(configLocale.cache.keepCache),
+  keepCache: Schema.boolean().default(false).description(configLocale.cache.keepCache),
 }).description(configLocale.cache.title)
 
 const requestConfig: Schema<IRequestConfig> = Schema.object({

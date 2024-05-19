@@ -115,10 +115,7 @@ export class MemeSource {
     protected config: IConfig,
     protected http: HTTP,
   ) {
-    this.previewCacheJsonPath = path.join(
-      this.config.cacheDir,
-      `preview_path.json`,
-    )
+    this.previewCacheJsonPath = path.join(this.config.cacheDir, `preview_path.json`)
   }
 
   get memes(): Record<string, MemeInfo> {
@@ -277,9 +274,7 @@ export class MemeSource {
   }
 
   async getKeys(): Promise<string[]> {
-    return JSON.parse(
-      (await this.request('/memes/keys', { method: 'GET' })).data,
-    )
+    return JSON.parse((await this.request('/memes/keys', { method: 'GET' })).data)
   }
 
   async getInfo(key: string): Promise<MemeInfo> {

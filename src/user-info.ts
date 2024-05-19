@@ -34,10 +34,7 @@ export async function getInfoFromID(
         return { url, user_info: { name: data.nickname, gender: data.sex } }
       }
 
-      const data = await bot.internal.getGroupMemberInfo(
-        session.guildId,
-        userId,
-      )
+      const data = await bot.internal.getGroupMemberInfo(session.guildId, userId)
       return {
         url,
         user_info: { name: data.card || data.nickname, gender: data.sex },
@@ -60,9 +57,7 @@ export async function getInfoFromID(
 
   const specificFunc = platformSpecific[session.platform]
   const func =
-    !specificFunc || forceFallback
-      ? fallback
-      : platformSpecific[session.platform]
+    !specificFunc || forceFallback ? fallback : platformSpecific[session.platform]
   try {
     return await func()
   } catch (e) {
