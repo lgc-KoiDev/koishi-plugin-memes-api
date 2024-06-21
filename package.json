@@ -45,9 +45,9 @@
   },
   "peerDependencies": {
     "@cordisjs/plugin-http": "^0.4.2",
-    "koishi": "^4.17.6"
+    "koishi": "^4.17.9"
   },
   "devDependencies": {
-    "koishi-plugin-adapter-onebot": "^6.5.3"
+    "koishi-plugin-adapter-onebot": "^6.5.8"
   }
 }
