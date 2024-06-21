@@ -1,4 +1,5 @@
 import { Context, h } from 'koishi'
+import Semaphore from 'semaphore-promise'
 
 export function extractPlaintext(elements: h[]): string {
   return elements
@@ -58,4 +59,11 @@ export function splitArg(text: string): string[] {
   if (buffer.length) args.push(buffer.join(''))
 
   return args.map((x) => x.trim()).filter((x) => x.length)
+}
+
+export async function autoRelease<T extends (...args: any[]) => Promise<any>>(
+  sem: Semaphore,
+  func: T,
+) {
+  return sem.acquire().then((release) => func().finally(release))
 }

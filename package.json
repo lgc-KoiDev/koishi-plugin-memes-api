@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-memes-api",
   "description": "表情包制作插件调用 API 版",
-  "version": "0.1.25",
+  "version": "0.1.26",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -37,6 +37,9 @@
     "service": {
       "required": [
         "http"
+      ],
+      "optional": [
+        "notifier"
       ]
     },
     "locales": [
@@ -45,9 +48,13 @@
   },
   "peerDependencies": {
     "@cordisjs/plugin-http": "^0.4.2",
+    "@koishijs/plugin-notifier": "^1.2.1",
     "koishi": "^4.17.9"
   },
   "devDependencies": {
     "koishi-plugin-adapter-onebot": "^6.5.8"
+  },
+  "dependencies": {
+    "semaphore-promise": "^1.4.2"
   }
 }

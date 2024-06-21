@@ -16,10 +16,15 @@ import { locale } from './locale'
 import { CanNotGetAvatarError, getInfoFromID, ImageAndUserInfo } from './user-info'
 import { extractPlaintext, formatRange, getI18N, splitArg } from './utils'
 
+import type { Notifier } from '@koishijs/plugin-notifier'
+
 export { name } from './const'
 export { Config }
 
-export const inject = ['http']
+export const inject = {
+  required: ['http'],
+  optional: ['notifier'],
+}
 
 export const usage = `
 如果插件没有注册 \`meme\` 指令，请检查你的请求设置是否正确，以及 \`meme-generator\` 是否正常部署。  
@@ -54,13 +59,25 @@ export async function apply(ctx: Context, config: IConfig) {
   ctx.i18n.define('zh-CN', locale as any)
   ctx.i18n.define('zh', locale as any)
 
+  let notifier = null as Notifier | null
+  ctx.inject(['notifier'], (ctx) => {
+    notifier = ctx.notifier.create()
+  })
+
   const http = ctx.http.extend(config.requestConfig)
   const source = new MemeSource(config, http)
+  notifier?.update({ type: 'primary', content: '初始化数据源中……' })
   try {
     await source.init()
   } catch (e) {
     logger.error(`MemeSource init failed!`)
     logger.error(e)
+    notifier?.update({
+      type: 'danger',
+      content:
+        '初始化数据源失败！' +
+        '请检查你的请求设置以及 meme-generator 的部署状态，更多信息请查看日志。',
+    })
     return
   }
 
@@ -368,4 +385,8 @@ export async function apply(ctx: Context, config: IConfig) {
   }
 
   logger.info(`Plugin setup successfully, loaded ${source.count} memes.`)
+  notifier?.update({
+    type: 'success',
+    content: `已成功加载 ${source.count} 个表情。`,
+  })
 }

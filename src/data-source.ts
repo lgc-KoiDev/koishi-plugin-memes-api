@@ -4,10 +4,12 @@ import path from 'path'
 
 import { HTTP } from '@cordisjs/plugin-http'
 import { h } from 'koishi'
+import Semaphore from 'semaphore-promise'
 
 import { IConfig } from './config'
 import { logger } from './const'
 import { MemeError } from './error'
+import { autoRelease } from './utils'
 
 // #region Response
 export interface MemeArgs {
@@ -164,9 +166,12 @@ export class MemeSource {
   protected async initMemeList() {
     const keys = await this.getKeys()
 
-    const tasks = keys.map(async (key) => {
-      this._memeList.push({ name: key, ...(await this.getInfo(key)) })
-    })
+    const sem = new Semaphore(8)
+    const tasks = keys.map((key) =>
+      autoRelease(sem, async () => {
+        this._memeList.push({ name: key, ...(await this.getInfo(key)) })
+      }),
+    )
     await Promise.all(tasks)
     this._memeList.sort((a, b) => a.name.localeCompare(b.name))
 
