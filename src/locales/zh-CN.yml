@@ -59,18 +59,17 @@ memes-api:
       表情预览：
       {0}
 
-  config:
-    command:
-      title: 指令设置
-      enableShortcut: |-
-        是否注册类似原版 `memes` 插件的触发指令。  
-        例：`meme generate 5000兆 我去 洛天依` -> `5000兆 我去 洛天依`
-      silentShortcut: 是否禁用使用原版触发指令时的 参数错误提示。
-      moreSilent: 是否禁用使用原版触发指令时的 **所有** 错误提示。
-      autoUseDefaultTexts: 是否在用户未提供文字时自动使用默认文字。
-      autoUseSenderAvatarWhenOnlyOne: 是否在仅需求一张图片且用户未提供时自动使用发送者头像。
-      autoUseSenderAvatarWhenOneLeft: 是否在用户已提供图片但距离最少需求图片数仅差 1 时自动使用发送者头像。
-    cache:
-      title: 缓存设置
-      cacheDir: 插件图片缓存存放的目录。
-      keepCache: 插件会在每次加载时清空已缓存图片，启用该配置则插件不会自动清理缓存。
+_config:
+  - $desc: 指令设置
+    enableShortcut: |-
+      是否注册类似原版 `memes` 插件的触发指令。  
+      例：`meme generate 5000兆 我去 洛天依` -> `5000兆 我去 洛天依`
+    silentShortcut: 是否禁用使用原版触发指令时的 参数错误提示。
+    moreSilent: 是否禁用使用原版触发指令时的 **所有** 错误提示。
+    autoUseDefaultTexts: 是否在用户未提供文字时自动使用默认文字。
+    autoUseSenderAvatarWhenOnlyOne: 是否在仅需求一张图片且用户未提供时自动使用发送者头像。
+    autoUseSenderAvatarWhenOneLeft: 是否在用户已提供图片但距离最少需求图片数仅差 1 时自动使用发送者头像。
+
+  - $desc: 缓存设置
+    cacheDir: 插件图片缓存存放的目录。
+    keepCache: 插件会在每次加载时清空已缓存图片，启用该配置则插件不会自动清理缓存。

@@ -76,6 +76,11 @@ Telegram：[@lgc2333](https://t.me/lgc2333)
 
 ## 📝 更新日志
 
+### 0.1.27
+
+- 现在使用 `session.execute` 执行本插件生成命令时的行为将符合开发者预期
+- 一些不影响使用的其它小修改
+
 ### 0.1.26
 
 - try 2 fix [#13](https://github.com/lgc-KoiDev/koishi-plugin-memes-api/issues/13)

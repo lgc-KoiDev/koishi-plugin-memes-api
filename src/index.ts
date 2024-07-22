@@ -12,7 +12,7 @@ import {
   returnFileToElem,
 } from './data-source'
 import { formatError, MemeError, paramErrorTypes } from './error'
-import { locale } from './locale'
+import zhCNLocale from './locales/zh-CN.yml'
 import { CanNotGetAvatarError, getInfoFromID, ImageAndUserInfo } from './user-info'
 import { extractPlaintext, formatRange, getI18N, splitArg } from './utils'
 
@@ -56,8 +56,8 @@ function wrapError<TA extends any[], TR>(
 }
 
 export async function apply(ctx: Context, config: IConfig) {
-  ctx.i18n.define('zh-CN', locale as any)
-  ctx.i18n.define('zh', locale as any)
+  ctx.i18n.define('zh-CN', zhCNLocale)
+  ctx.i18n.define('zh', zhCNLocale)
 
   let notifier = null as Notifier | null
   ctx.inject(['notifier'], (ctx) => {
@@ -165,16 +165,13 @@ export async function apply(ctx: Context, config: IConfig) {
     }),
   )
 
-  // TODO 重构屎山，用 `h.parse` 解析消息元素
   const generateMeme = wrapError(
     async (
       session: Session<any, any>,
       name: string,
-      prefix: string,
+      elements: h[],
       matched?: string[],
     ) => {
-      if (!session.elements) return undefined
-
       const [meme, isIndex] = source.getMemeByKeywordOrIndex(name)
       if (!meme) {
         return formatError(isIndex ? 'no-such-index' : 'no-such-meme', {
@@ -192,9 +189,7 @@ export async function apply(ctx: Context, config: IConfig) {
       if (matched) {
         texts.push(...matched)
       } else {
-        const splitted = splitArg(
-          extractPlaintext(session.elements).replace(prefix, ''),
-        )
+        const splitted = splitArg(extractPlaintext(elements))
         const realArgs = splitted.filter((x) => {
           if (x === '自己' || x === '@自己') {
             imageInfoTasks.push(getSenderInfo())
@@ -221,8 +216,7 @@ export async function apply(ctx: Context, config: IConfig) {
             .map((x) => ({ url: x.attrs.src as string })),
         )
       }
-      for (const ele of session.elements.slice(1)) {
-        // 需要忽略回复转化为的 at，第一个不是 at 就是指令，可以放心忽略（应该
+      for (const ele of elements) {
         if (ele.type === 'img') {
           imageInfoTasks.push({ url: ele.attrs.src as string })
         }
@@ -295,20 +289,23 @@ export async function apply(ctx: Context, config: IConfig) {
   )
 
   command
-    .subcommand('.generate <name:string> [...args]')
-    .action(async ({ session }, name) => {
-      if (!session || !session.elements) return undefined
+    .subcommand('.generate <name:string> [elements:el]')
+    .action(async ({ session }, name, elements) => {
+      if (!session) return undefined
       if (!name) return session.execute('help meme.generate')
 
       const rh = await (() => {
-        if (session.memeRegexMatched) {
-          return generateMeme(session, name, '', session.memeRegexMatched)
+        if (session.memePfxMatched) {
+          return generateMeme(
+            session,
+            name,
+            h.parse(session.content!.slice(session.memePfxMatched.length).trim()),
+          )
         }
-        const plainTxt = extractPlaintext(session.elements)
-        const pfx =
-          session.memePfxMatched ??
-          plainTxt.slice(0, plainTxt.indexOf(name) + name.length)
-        return generateMeme(session, name, pfx)
+        if (session.memeRegexMatched) {
+          return generateMeme(session, name, elements, session.memeRegexMatched)
+        }
+        return generateMeme(session, name, elements)
       })()
       const fromShortcut = session.memeRegexMatched || session.memePfxMatched
       if (!fromShortcut || rh?.type !== 'i18n') return rh
