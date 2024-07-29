@@ -31,13 +31,16 @@ export async function getInfoFromID(
 
       if (session.isDirect) {
         const data = await bot.internal.getStrangerInfo(userId)
-        return { url, user_info: { name: data.nickname, gender: data.sex } }
+        return {
+          url,
+          user_info: { name: data.nickname, gender: data.sex || 'unknown' },
+        }
       }
 
       const data = await bot.internal.getGroupMemberInfo(session.guildId, userId)
       return {
         url,
-        user_info: { name: data.card || data.nickname, gender: data.sex },
+        user_info: { name: data.card || data.nickname, gender: data.sex || 'unknown' },
       }
     },
   }
