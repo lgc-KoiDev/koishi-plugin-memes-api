@@ -299,7 +299,7 @@ export async function apply(ctx: Context, config: IConfig) {
           return generateMeme(
             session,
             name,
-            h.parse(session.content!.slice(session.memePfxMatched.length).trim()),
+            h.parse(session.content!.replace(session.memePfxMatched, '').trim()),
           )
         }
         if (session.memeRegexMatched) {
@@ -334,46 +334,44 @@ export async function apply(ctx: Context, config: IConfig) {
     const cmdPrefixes = cmdPrefix instanceof Array ? cmdPrefix : [cmdPrefix as string]
     const cmdPrefixRegex = cmdPrefixes.map(escapeRegExp).join('|')
 
-    type Match = { key: string; prefixes: string[]; patterns: RegExp[] }
-    const matches: Match[] = []
+    const keyPrefixes: [string, string][] = []
+    const keyPatterns: [string, RegExp][] = []
 
     for (const meme of Object.values(source.memes)) {
       const { key, keywords, patterns } = meme
 
-      const tmpPfx = []
-      const tmpPtn = []
       for (const pfx of cmdPrefixes) {
         for (const keyword of keywords) {
-          tmpPfx.push(`${pfx}${keyword}`)
+          keyPrefixes.push([key, `${pfx}${keyword}`])
         }
       }
-      for (const pattern of patterns) {
-        tmpPtn.push(new RegExp(`(${cmdPrefixRegex})${pattern}`, 'i'))
-      }
 
-      matches.push({ key, prefixes: tmpPfx, patterns: tmpPtn })
+      for (const pattern of patterns) {
+        keyPatterns.push([key, new RegExp(`(${cmdPrefixRegex})${pattern}`, 'i')])
+      }
     }
+
+    keyPrefixes.sort((a, b) => b[1].length - a[1].length)
 
     ctx.middleware(async (session, next) => {
       if (!session.elements) return undefined
 
       const content = extractPlaintext(session.elements).trim()
 
-      for (const match of matches) {
-        const { key, prefixes, patterns } = match
-
-        for (const pfx of prefixes) {
-          if (content.startsWith(pfx)) {
-            session.memePfxMatched = pfx
-            return session.execute(`meme.generate ${key}`)
-          }
+      for (const it of keyPrefixes) {
+        const pfx = it[1]
+        if (content.startsWith(pfx)) {
+          session.memePfxMatched = pfx
+          return session.execute(`meme.generate ${it[0]}`)
         }
-        for (const ptn of patterns) {
-          const ptnMatch = content.match(ptn)
-          if (ptnMatch) {
-            session.memeRegexMatched = ptnMatch.slice(2)
-            return session.execute(`meme.generate ${key}`)
-          }
+      }
+
+      for (const it of keyPatterns) {
+        const ptn = it[1]
+        const ptnMatch = content.match(ptn)
+        if (ptnMatch) {
+          session.memeRegexMatched = ptnMatch.slice(2)
+          return session.execute(`meme.generate ${it[0]}`)
         }
       }
 
