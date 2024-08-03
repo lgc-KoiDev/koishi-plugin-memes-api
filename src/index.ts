@@ -293,6 +293,7 @@ export async function apply(ctx: Context, config: IConfig) {
     .action(async ({ session }, name, elements) => {
       if (!session) return undefined
       if (!name) return session.execute('help meme.generate')
+      elements = elements || []
 
       const rh = await (() => {
         if (session.memePfxMatched) {
@@ -303,7 +304,7 @@ export async function apply(ctx: Context, config: IConfig) {
           )
         }
         if (session.memeRegexMatched) {
-          return generateMeme(session, name, elements, session.memeRegexMatched)
+          return generateMeme(session, name, session.elements, session.memeRegexMatched)
         }
         return generateMeme(session, name, elements)
       })()
@@ -347,7 +348,11 @@ export async function apply(ctx: Context, config: IConfig) {
       }
 
       for (const pattern of patterns) {
-        keyPatterns.push([key, new RegExp(`(${cmdPrefixRegex})${pattern}`, 'i')])
+        const trimmedPattern = pattern.replace(/^\^/, '').replace(/\$$/, '')
+        keyPatterns.push([
+          key,
+          new RegExp(`^(${cmdPrefixRegex})(${trimmedPattern})$`, 'i'),
+        ])
       }
     }
 
@@ -370,7 +375,7 @@ export async function apply(ctx: Context, config: IConfig) {
         const ptn = it[1]
         const ptnMatch = content.match(ptn)
         if (ptnMatch) {
-          session.memeRegexMatched = ptnMatch.slice(2)
+          session.memeRegexMatched = ptnMatch.slice(3)
           return session.execute(`meme.generate ${it[0]}`)
         }
       }
