@@ -49,10 +49,10 @@
   "peerDependencies": {
     "@cordisjs/plugin-http": "^0.4.2",
     "@koishijs/plugin-notifier": "^1.2.1",
-    "koishi": "^4.17.10"
+    "koishi": "^4.17.11"
   },
   "devDependencies": {
-    "koishi-plugin-adapter-onebot": "^6.5.9"
+    "koishi-plugin-adapter-onebot": "^6.5.12"
   },
   "dependencies": {
     "semaphore-promise": "^1.4.2"
