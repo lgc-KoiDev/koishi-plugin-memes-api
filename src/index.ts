@@ -347,7 +347,7 @@ export async function apply(ctx: Context, config: IConfig) {
         }
       }
 
-      for (const pattern of patterns) {
+      for (const pattern of patterns ?? []) {
         const trimmedPattern = pattern.replace(/^\^/, '').replace(/\$$/, '')
         keyPatterns.push([
           key,
