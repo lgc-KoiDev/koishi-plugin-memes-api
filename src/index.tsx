@@ -111,6 +111,9 @@ export async function apply(ctx: Context, config: Config) {
   try {
     await Commands.apply(ctx, config)
   } catch (e) {
+    try {
+      ctx.$.cmd.dispose()
+    } catch (_) {}
     ctx.logger.warn('Failed to initialize commands, plugin will not work')
     ctx.logger.warn(e)
     ctx.$.notifier?.update({

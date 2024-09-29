@@ -1,51 +1,111 @@
 import type { FileResponse } from '@cordisjs/plugin-http'
 
+export class ArgSyntaxError extends SyntaxError {
+  constructor(
+    public readonly type: ArgSyntaxError.Type,
+    public readonly char: string,
+    public readonly index: number,
+  ) {
+    const message = (() => {
+      switch (type) {
+        case ArgSyntaxError.Type.UnexpectedChar:
+          return (
+            `Unexpected char ${char} in input string at index ${index}, ` +
+            `consider use backslash to escape`
+          )
+        case ArgSyntaxError.Type.UnterminatedQuote:
+          return `Unterminated quote ${char} in input string at index ${index}`
+      }
+    })()
+    super(message)
+  }
+}
+export namespace ArgSyntaxError {
+  export enum Type {
+    UnexpectedChar,
+    UnterminatedQuote,
+  }
+
+  export function getI18NKey(e: ArgSyntaxError): string {
+    const kPfx = `memes-api.errors.syntax-error.`
+    switch (e.type) {
+      case ArgSyntaxError.Type.UnexpectedChar:
+        return `${kPfx}unexpected-char`
+      case ArgSyntaxError.Type.UnterminatedQuote:
+        return `${kPfx}unterminated-quote`
+    }
+  }
+}
+
 export function splitArgString(argString: string): string[] {
-  const quotePairs = {
+  const quotePairs: Record<string, string> = {
     '"': '"',
     "'": "'",
+    '`': '`',
     '“': '”',
     '‘': '’',
-  } as const
+  }
 
   const args: string[] = []
-  let currentArg = ''
-  let inQuotes: string | null = null
+  const currentArgChars: string[] = []
+  let inQuote: string | null = null
+  let outQuote: string | null = null
+  let escapeNext = false
+  let lastInQuoteIndex = -1
 
   for (let i = 0; i < argString.length; i += 1) {
     const char = argString[i]
 
-    if (inQuotes) {
-      if (char === inQuotes) {
+    if (escapeNext) {
+      currentArgChars.push(char)
+      escapeNext = false
+      continue
+    }
+
+    if (char === '\\') {
+      escapeNext = true
+      continue
+    }
+
+    if (inQuote) {
+      if (char === outQuote) {
         // 结束引号
-        inQuotes = null
+        inQuote = null
+        outQuote = null
+      } else if (char === inQuote) {
+        throw new ArgSyntaxError(ArgSyntaxError.Type.UnexpectedChar, char, i)
       } else {
         // 添加字符到当前参数
-        currentArg += char
+        currentArgChars.push(char)
       }
       continue
     }
 
     if (char in quotePairs) {
       // 开始新的引号
-      inQuotes = char
-    } else if (char === ' ') {
+      inQuote = char
+      outQuote = quotePairs[char]
+      lastInQuoteIndex = i
+    } else if (/^\s$/.test(char)) {
       // 空格分隔参数
-      if (currentArg) {
-        args.push(currentArg)
-        currentArg = ''
-      }
-      while (i + 1 < argString.length && argString[i + 1] === ' ') {
-        i += 1
+      if (currentArgChars.length) {
+        args.push(currentArgChars.join(''))
+        currentArgChars.length = 0
       }
     } else {
       // 普通字符
-      currentArg += char
+      currentArgChars.push(char)
     }
   }
 
-  if (currentArg) args.push(currentArg)
-  if (inQuotes) throw new SyntaxError('Unmatched quotes in input string.')
+  if (currentArgChars.length) args.push(currentArgChars.join(''))
+  if (inQuote) {
+    throw new ArgSyntaxError(
+      ArgSyntaxError.Type.UnterminatedQuote,
+      inQuote,
+      lastInQuoteIndex,
+    )
+  }
 
   return args
 }
@@ -56,4 +116,8 @@ export function checkInRange(value: number, min: number, max: number): boolean {
 
 export function constructBlobFromFileResp(resp: FileResponse): Blob {
   return new Blob([resp.data], { type: resp.type })
+}
+
+export function formatRange(min: number, max: number): string {
+  return min === max ? min.toString() : `${min} ~ ${max}`
 }

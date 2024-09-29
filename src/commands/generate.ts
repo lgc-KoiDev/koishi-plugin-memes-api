@@ -9,7 +9,13 @@ import {
 
 import { Config } from '../config'
 import { GetAvatarFailedError } from '../user-info'
-import { checkInRange, constructBlobFromFileResp, splitArgString } from '../utils'
+import {
+  ArgSyntaxError,
+  checkInRange,
+  constructBlobFromFileResp,
+  formatRange,
+  splitArgString,
+} from '../utils'
 
 declare module '../index' {
   interface MemeInternal {
@@ -96,7 +102,7 @@ export async function apply(ctx: Context, config: Config) {
     }
     registerGenerateOptions(subCmd, info)
 
-    subCmd.action(async ({ session, options }, args) => {
+    return subCmd.action(async ({ session, options }, args) => {
       if (!session) return
 
       const imageInfos: ImageFetchInfo[] = []
@@ -155,7 +161,7 @@ export async function apply(ctx: Context, config: Config) {
 
         const resolveBuffer = () => {
           if (!textBuffer.length) return
-          const texts = splitArgString(textBuffer.join('')).filter((v) => {
+          const bufferTexts = splitArgString(textBuffer.join('')).filter((v) => {
             if (v === '自己' || v === '@自己') {
               imageInfos.push({ userId: session.userId })
               return false
@@ -167,7 +173,8 @@ export async function apply(ctx: Context, config: Config) {
             }
             return true
           })
-          texts.push(...texts)
+          textBuffer.length = 0
+          texts.push(...bufferTexts)
         }
 
         const visit = (e: h) => {
@@ -200,8 +207,9 @@ export async function apply(ctx: Context, config: Config) {
           for (const child of args) visit(child)
           resolveBuffer()
         } catch (e) {
-          if (e instanceof SyntaxError) {
-            return session.text('memes-api.errors.syntax-error')
+          if (e instanceof ArgSyntaxError) {
+            ctx.logger.warn(e.message)
+            return session.text(ArgSyntaxError.getI18NKey(e), e)
           }
           throw e
         }
@@ -237,10 +245,16 @@ export async function apply(ctx: Context, config: Config) {
 
       // check image and text count
       if (!checkInRange(imageInfos.length, minImages, maxImages)) {
-        return session.text('memes-api.errors.image-number-mismatch')
+        return session.text('memes-api.errors.image-number-mismatch', [
+          formatRange(minImages, maxImages),
+          imageInfos.length,
+        ])
       }
       if (!checkInRange(texts.length, minTexts, maxTexts)) {
-        return session.text('memes-api.errors.text-number-mismatch')
+        return session.text('memes-api.errors.text-number-mismatch', [
+          formatRange(minTexts, maxTexts),
+          texts.length,
+        ])
       }
 
       // resolve images
@@ -271,7 +285,7 @@ export async function apply(ctx: Context, config: Config) {
         await Promise.all(tasks)
       } catch (e) {
         if (e instanceof GetAvatarFailedError) {
-          return session.text('memes-api.errors.can-not-get-avatar')
+          return session.text('memes-api.errors.can-not-get-avatar', e)
         }
         ctx.logger.warn(e)
         return session.text('memes-api.errors.download-image-failed')
@@ -295,11 +309,8 @@ export async function apply(ctx: Context, config: Config) {
         }
         throw e
       }
-
       return h.image(await img.arrayBuffer(), img.type)
     })
-
-    return subCmd
   }
 
   ctx.$.reRegisterGenerateCommands = async () => {
@@ -315,4 +326,6 @@ export async function apply(ctx: Context, config: Config) {
     Object.assign(ctx.$.generateCommands, tmp)
   }
   await ctx.$.reRegisterGenerateCommands()
+
+  // todo regex middleware
 }
