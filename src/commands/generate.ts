@@ -87,15 +87,16 @@ export async function apply(ctx: Context, config: Config) {
   const registerGenerateCmd = (info: MemeInfoResponse) => {
     const { key, keywords } = info
 
-    const subCmd: Command<never, never, [h[], ...string[]], any> =
-      cmdGenerate.subcommand(`.${key} [args:el]`, {
+    const subCmd: Command<never, never, [h[], ...string[]], any> = cmdGenerate
+      .subcommand(`.${key} [args:el]`, {
         strictOptions: true,
         hidden: true,
       })
+      .option('silent', '[silent:boolean]', { hidden: true })
     for (const kw of keywords) subCmd.alias(`.${kw}`)
     if (config.enableShortcut) {
       try {
-        for (const kw of keywords) subCmd.alias(kw)
+        for (const kw of keywords) subCmd.alias(kw, { options: { silent: true } })
       } catch (e) {
         ctx.logger.warn(e)
       }
@@ -209,7 +210,9 @@ export async function apply(ctx: Context, config: Config) {
         } catch (e) {
           if (e instanceof ArgSyntaxError) {
             ctx.logger.warn(e.message)
-            return session.text(ArgSyntaxError.getI18NKey(e), e)
+            return options.silent
+              ? undefined
+              : session.text(ArgSyntaxError.getI18NKey(e), e)
           }
           throw e
         }
@@ -245,16 +248,20 @@ export async function apply(ctx: Context, config: Config) {
 
       // check image and text count
       if (!checkInRange(imageInfos.length, minImages, maxImages)) {
-        return session.text('memes-api.errors.image-number-mismatch', [
-          formatRange(minImages, maxImages),
-          imageInfos.length,
-        ])
+        return options.silent
+          ? undefined
+          : session.text('memes-api.errors.image-number-mismatch', [
+              formatRange(minImages, maxImages),
+              imageInfos.length,
+            ])
       }
       if (!checkInRange(texts.length, minTexts, maxTexts)) {
-        return session.text('memes-api.errors.text-number-mismatch', [
-          formatRange(minTexts, maxTexts),
-          texts.length,
-        ])
+        return options.silent
+          ? undefined
+          : session.text('memes-api.errors.text-number-mismatch', [
+              formatRange(minTexts, maxTexts),
+              texts.length,
+            ])
       }
 
       // resolve images
@@ -285,10 +292,14 @@ export async function apply(ctx: Context, config: Config) {
         await Promise.all(tasks)
       } catch (e) {
         if (e instanceof GetAvatarFailedError) {
-          return session.text('memes-api.errors.can-not-get-avatar', e)
+          return options.silent && config.moreSilent
+            ? undefined
+            : session.text('memes-api.errors.can-not-get-avatar', e)
         }
         ctx.logger.warn(e)
-        return session.text('memes-api.errors.download-image-failed')
+        return options.silent && config.moreSilent
+          ? undefined
+          : session.text('memes-api.errors.download-image-failed')
       }
 
       const images = imageInfoKeys.map((key) => imageMap[key])
@@ -305,7 +316,11 @@ export async function apply(ctx: Context, config: Config) {
         if (e instanceof MemeError) {
           if (!e.type) throw e
           ctx.logger.warn(e)
-          return e.memeMessage
+          return options.silent &&
+            ((e.response.status <= 540 && e.response.status > 560) || // arg error
+              config.moreSilent)
+            ? undefined
+            : e.memeMessage
         }
         throw e
       }
