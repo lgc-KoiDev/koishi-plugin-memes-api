@@ -1,69 +1,59 @@
-import { Context, h } from 'koishi'
-import Semaphore from 'semaphore-promise'
+import type { FileResponse } from '@cordisjs/plugin-http'
 
-export function extractPlaintext(elements: h[]): string {
-  return elements
-    .map((e) =>
-      e.type === 'text'
-        ? ((e.attrs.content ?? '') as string) // + extractPlaintext(e.children)
-        : ' ',
-    )
-    .join('')
-}
+export function splitArgString(argString: string): string[] {
+  const quotePairs = {
+    '"': '"',
+    "'": "'",
+    '“': '”',
+    '‘': '’',
+  } as const
 
-export function getI18N(ctx: Context, key: string, args: object = []): string {
-  return extractPlaintext(
-    ctx.i18n.render(ctx.root.config.i18n?.locales ?? [], [key], args),
-  )
-}
-
-export function formatRange(min: number, max: number): string {
-  return min === max ? min.toString() : `${min} ~ ${max}`
-}
-
-export function splitArg(text: string): string[] {
   const args: string[] = []
+  let currentArg = ''
+  let inQuotes: string | null = null
 
-  let buffer: string[] = []
-  let inQuote = false
-  let escapeNext = false
+  for (let i = 0; i < argString.length; i += 1) {
+    const char = argString[i]
 
-  for (const char of text) {
-    if (escapeNext) {
-      buffer.push(char)
-      escapeNext = false
-      continue
-    }
-
-    if (char === '\\') {
-      escapeNext = true
-      continue
-    }
-
-    if (char === '"') {
-      inQuote = !inQuote
-      continue
-    }
-
-    if (char === ' ' && !inQuote) {
-      if (buffer.length) {
-        args.push(buffer.join(''))
-        buffer = []
+    if (inQuotes) {
+      if (char === inQuotes) {
+        // 结束引号
+        inQuotes = null
+      } else {
+        // 添加字符到当前参数
+        currentArg += char
       }
       continue
     }
 
-    buffer.push(char)
+    if (char in quotePairs) {
+      // 开始新的引号
+      inQuotes = char
+    } else if (char === ' ') {
+      // 空格分隔参数
+      if (currentArg) {
+        args.push(currentArg)
+        currentArg = ''
+      }
+      while (i + 1 < argString.length && argString[i + 1] === ' ') {
+        i += 1
+      }
+    } else {
+      // 普通字符
+      currentArg += char
+    }
   }
 
-  if (buffer.length) args.push(buffer.join(''))
+  if (currentArg) args.push(currentArg)
+  if (inQuotes) throw new SyntaxError('Unmatched quotes in input string.')
 
-  return args.map((x) => x.trim()).filter((x) => x.length)
+  return args
 }
 
-export async function autoRelease<T extends (...args: any[]) => Promise<any>>(
-  sem: Semaphore,
-  func: T,
-) {
-  return sem.acquire().then((release) => func().finally(release))
+export function checkInRange(value: number, min: number, max: number): boolean {
+  return value >= min && value <= max
+}
+
+export function constructBlobFromFileResp(resp: FileResponse): Blob {
+  return new Blob([resp.data], { type: resp.type })
 }

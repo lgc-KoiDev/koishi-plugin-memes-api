@@ -1,15 +1,18 @@
 {
   "name": "koishi-plugin-memes-api",
   "description": "表情包制作插件调用 API 版",
-  "version": "0.1.30",
+  "version": "1.0.0",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
     "lib",
     "dist"
   ],
-  "author": "student_2333 <lgc2333@126.com>",
   "license": "MIT",
+  "workspaces": [
+    "external/*"
+  ],
+  "author": "student_2333 <lgc2333@126.com>",
   "homepage": "https://github.com/lgc-KoiDev/koishi-plugin-memes-api",
   "scripts": {
     "build:console": "koishi-console build"
@@ -47,14 +50,16 @@
     ]
   },
   "peerDependencies": {
-    "@cordisjs/plugin-http": "^0.4.2",
-    "@koishijs/plugin-notifier": "^1.2.1",
-    "koishi": "^4.17.11"
+    "koishi": "^4.18.0"
   },
   "devDependencies": {
-    "koishi-plugin-adapter-onebot": "^6.5.12"
+    "@koishijs/plugin-help": "^2.4.4",
+    "@koishijs/plugin-notifier": "^1.2.1",
+    "koishi-plugin-adapter-onebot": "^6.7.2"
   },
   "dependencies": {
-    "semaphore-promise": "^1.4.2"
+    "meme-generator-api": "workspace:^",
+    "p-limit": "^6.1.0",
+    "re2": "^1.21.4"
   }
 }

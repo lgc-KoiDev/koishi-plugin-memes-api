@@ -2,7 +2,7 @@ import { HTTP, Schema } from 'koishi'
 
 import zhCNLocale from './locales/zh-CN.yml'
 
-interface ICommandConfig {
+export interface CommandConfig {
   enableShortcut: boolean
   silentShortcut?: boolean
   moreSilent?: boolean
@@ -11,16 +11,17 @@ interface ICommandConfig {
   autoUseSenderAvatarWhenOneLeft: boolean
 }
 
-interface ICacheConfig {
+export interface CacheConfig {
   cacheDir: string
   keepCache: boolean
 }
 
-interface IRequestConfig {
+export interface RequestConfig {
   requestConfig: HTTP.Config
+  getInfoConcurrency: number
 }
 
-export type IConfig = ICommandConfig & ICacheConfig & IRequestConfig
+export type Config = CommandConfig & CacheConfig & RequestConfig
 
 const shortcutCmdConfig = Schema.object({
   enableShortcut: Schema.boolean().default(true),
@@ -46,7 +47,7 @@ const shortcutCmdCfgWithMoreSilent = Schema.intersect([
     Schema.object({}),
   ]),
 ])
-const commandConfig: Schema<ICommandConfig> = Schema.intersect([
+export const CommandConfig: Schema<CommandConfig> = Schema.intersect([
   shortcutCmdCfgWithMoreSilent,
   Schema.object({
     autoUseDefaultTexts: Schema.boolean().default(true),
@@ -55,7 +56,7 @@ const commandConfig: Schema<ICommandConfig> = Schema.intersect([
   }),
 ])
 
-const cacheConfig: Schema<ICacheConfig> = Schema.object({
+export const CacheConfig: Schema<CacheConfig> = Schema.object({
   cacheDir: Schema.path({
     filters: ['directory'],
     allowCreate: true,
@@ -63,14 +64,16 @@ const cacheConfig: Schema<ICacheConfig> = Schema.object({
   keepCache: Schema.boolean().default(false),
 })
 
-const requestConfig: Schema<IRequestConfig> = Schema.object({
+export const RequestConfig: Schema<RequestConfig> = Schema.object({
   requestConfig: HTTP.createConfig('http://127.0.0.1:2233'),
+  getInfoConcurrency: Schema.natural().min(1).default(8),
 })
 
-export const Config: Schema<IConfig> = Schema.intersect([
-  Schema.intersect([commandConfig, cacheConfig]).i18n({
-    'zh-CN': zhCNLocale._config,
-    zh: zhCNLocale._config,
-  }),
-  requestConfig,
-])
+export const Config: Schema<Config> = Schema.intersect([
+  CommandConfig,
+  CacheConfig,
+  RequestConfig,
+]).i18n({
+  'zh-CN': zhCNLocale._config,
+  zh: zhCNLocale._config,
+})

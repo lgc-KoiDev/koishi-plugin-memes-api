@@ -1,6 +1,6 @@
 lib
 dist
-external
+# external
 
 node_modules
 npm-debug.log

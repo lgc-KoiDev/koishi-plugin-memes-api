@@ -1,64 +1,3 @@
-commands:
-  meme:
-    description: |-
-      制作各种沙雕表情包
-      使用指令 “meme list” 查看表情列表
-  meme.list:
-    description: 表情列表
-  meme.info:
-    description: 表情详情
-  meme.generate:
-    description: 生成表情包
-    examples: |-
-      meme generate 5000兆 我去 洛天依
-      meme generate rua @Bot /圆
-
-memes-api:
-  errors:
-    no-such-meme: 表情 {0} 不存在！
-    text-over-length: 文字长度过长。
-    open-image-failed: 打开图片失败。
-    parser-exit: 参数解析错误。
-    image-number-mismatch: 输入图片数量不符，图片数量应为 {0}，但当前为 {1}。
-    text-number-mismatch: 输入文字数量不符，文字数量应为 {0}，但当前为 {1}。
-    arg-parser-exit: 参数解析错误。
-    arg-model-mismatch: 请求参数错误。
-    arg-mismatch: 传入参数错误，请检查。
-    param-mismatch: 传入参数错误，请检查。
-
-    unknown-error: 出现未知错误。
-    unexpected-error: 出现意外错误。
-
-    text-or-name-not-enough: 文字或名字数量不足。
-    # platform-not-supported: 平台 “{0}” 暂不支持获取头像，请使用图片输入。
-    download-avatar-failed: 下载头像失败。
-    no-such-index: 不存在序号为 {0} 的表情！
-    can-not-get-avatar: 无法获取平台 {0} 中用户 ID 为 {1} 的头像。
-
-  list:
-    tip: |-
-      触发方式：“关键词 + 图片/文字”
-      发送 “表情详情 + 关键词” 查看表情参数和预览
-      目前支持的表情列表：
-    tip-no-shortcut: |-
-      触发指令：“meme generate <关键词/序号> [...图片/文字]”
-      发送指令 “meme info <关键词/序号>” 查看表情参数和预览
-      目前支持的表情列表：
-
-  info:
-    name: 表情名：{0}
-    keywords: 关键词：{0}
-    patterns: 正则表达式：{0}
-    image-num: 需要图片数目：{0}
-    text-num: 需要文字数目：{0}
-    default-texts: 默认文字：{0}
-    args-info: |-
-      可选参数：
-      {0}
-    preview: |-
-      表情预览：
-      {0}
-
 _config:
   - $desc: 指令设置
     enableShortcut: |-
@@ -73,3 +12,12 @@ _config:
   - $desc: 缓存设置
     cacheDir: 插件图片缓存存放的目录。
     keepCache: 插件会在每次加载时清空已缓存图片，启用该配置则插件不会自动清理缓存。
+
+  - $desc: 请求配置
+    requestConfig: &requestConfig
+      timeout: 等待连接建立的最长时间。
+      proxyAgent: 使用的代理服务器地址。
+      keepAlive: 是否保持连接。
+      endpoint: 要连接的服务器地址。
+      headers: 要附加的额外请求头。
+    getInfoConcurrency: 获取表情信息的并发数。
