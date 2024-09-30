@@ -37,15 +37,16 @@ export namespace ArgSyntaxError {
   }
 }
 
-export function splitArgString(argString: string): string[] {
-  const quotePairs: Record<string, string> = {
-    '"': '"',
-    "'": "'",
-    '`': '`',
-    '“': '”',
-    '‘': '’',
-  }
+const quotePairs: Record<string, string> = {
+  '"': '"',
+  "'": "'",
+  '`': '`',
+  '“': '”',
+  '‘': '’',
+}
+const quotes = [...new Set(Object.entries(quotePairs).flat())]
 
+export function splitArgString(argString: string): string[] {
   const args: string[] = []
   const currentArgChars: string[] = []
   let inQuote: string | null = null
@@ -108,6 +109,23 @@ export function splitArgString(argString: string): string[] {
   }
 
   return args
+}
+
+export function escapeArgs(args: string[], extraShouldQuote?: string[]): string {
+  return args
+    .map((arg) => {
+      const needQuote = (() => {
+        for (const q of quotes) if (arg.includes(q)) return true
+        if (extraShouldQuote) {
+          for (const q of extraShouldQuote) if (arg.includes(q)) return true
+        }
+        return false
+      })()
+      if (!needQuote) return arg
+      for (const q of quotes) arg.replaceAll(q, `\\${q}`)
+      return `"${arg}"`
+    })
+    .join(' ')
 }
 
 export function checkInRange(value: number, min: number, max: number): boolean {

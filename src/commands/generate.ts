@@ -1,4 +1,4 @@
-import { Command, h, paramCase, Context } from 'koishi'
+import { Command, Context, escapeRegExp, h, paramCase } from 'koishi'
 import {
   ActType,
   MemeError,
@@ -6,6 +6,7 @@ import {
   ParserOption,
   UserInfo,
 } from 'meme-generator-api'
+import RE2 from 're2'
 
 import { Config } from '../config'
 import { GetAvatarFailedError } from '../user-info'
@@ -13,23 +14,28 @@ import {
   ArgSyntaxError,
   checkInRange,
   constructBlobFromFileResp,
+  escapeArgs,
   formatRange,
   splitArgString,
 } from '../utils'
 
 declare module '../index' {
   interface MemeInternal {
-    generateCommands: Record<string, Command>
     reRegisterGenerateCommands: () => Promise<void>
   }
 }
 
 type ImageFetchInfo = { src: string } | { userId: string }
+interface ShortcutInfo {
+  name: string
+  regex: RE2
+  args?: string[]
+}
 
 export async function apply(ctx: Context, config: Config) {
-  ctx.$.generateCommands = {}
-
   const cmdGenerate = ctx.$.cmd.subcommand('.generate')
+
+  const generateSubCommands: Command[] = []
 
   const registerGenerateOptions = (cmd: Command, info: MemeInfoResponse) => {
     const {
@@ -98,7 +104,7 @@ export async function apply(ctx: Context, config: Config) {
       try {
         for (const kw of keywords) subCmd.alias(kw, { options: { silent: true } })
       } catch (e) {
-        ctx.logger.warn(e)
+        ctx.logger.warn(e instanceof Error ? e.message : e)
       }
     }
     registerGenerateOptions(subCmd, info)
@@ -328,19 +334,105 @@ export async function apply(ctx: Context, config: Config) {
     })
   }
 
-  ctx.$.reRegisterGenerateCommands = async () => {
-    for (const k in ctx.$.generateCommands) {
-      ctx.$.generateCommands[k].dispose()
-      delete ctx.$.generateCommands[k]
+  const shortcuts: ShortcutInfo[] = []
+
+  if (config.enableShortcut) {
+    const extractContentPlaintext = (content: string) => {
+      let elems: h[]
+      try {
+        elems = h.parse(content)
+      } catch (e) {
+        return content
+      }
+
+      const textBuffer: string[] = []
+      const visit = (e: h) => {
+        if (e.children.length) {
+          for (const child of e.children) visit(child)
+        }
+        if (e.type === 'text') {
+          const t = e.attrs.content
+          if (t) textBuffer.push(t)
+        }
+      }
+      for (const child of elems) visit(child)
+      return textBuffer.join('')
     }
 
-    const tmp: Record<string, Command> = {}
-    for (const k in ctx.$.infos) {
-      tmp[k] = registerGenerateCmd(ctx.$.infos[k])
+    const resolveArgs = (args: string[], res: RegExpExecArray) => {
+      return args.map((v) => {
+        // double bracket should escape it
+        return v.replace(/(?<l>[^\{])?\{(?<v>.+?)\}(?<r>[^\}])?/g, (...args) => {
+          type Groups = Record<'l' | 'r', string | undefined> & Record<'v', string>
+          const { l, v, r } = args[args.length - 1] as Groups
+          const index = parseInt(v)
+          let resolved: string
+          if (!isNaN(index)) {
+            // increase index because [1] is cmd pfx
+            resolved = res[index === 0 ? 0 : index + 1] ?? v
+          } else if (res.groups && v in res.groups) {
+            resolved = res.groups[v]
+          } else {
+            resolved = v
+          }
+          return `${l ?? ''}${extractContentPlaintext(resolved)}${r ?? ''}`
+        })
+      })
     }
-    Object.assign(ctx.$.generateCommands, tmp)
+
+    ctx.middleware(async (session, next) => {
+      const { content } = session
+      if (!content) return next()
+
+      const cmdPfxCfg = session.resolve((ctx.root.config as Context.Config).prefix)
+      const cmdPfx = cmdPfxCfg instanceof Array ? cmdPfxCfg : [cmdPfxCfg ?? '']
+      const hasEmptyPfx = cmdPfx.includes('')
+      const cmdPfxNotEmpty = cmdPfx.filter(Boolean)
+      const cmdPrefixRegex = cmdPfxNotEmpty.length
+        ? `(${cmdPfxNotEmpty.map(escapeRegExp).join('|')})${hasEmptyPfx ? '?' : ''}`
+        : '()' // keep group index correct
+
+      for (const name in ctx.$.infos) {
+        const info = ctx.$.infos[name]
+        for (const s of info.shortcuts) {
+          const trimmed = s.key.replace(/^\^/, '').replace(/\$$/, '')
+          const regex = new RE2(`^${cmdPrefixRegex}${trimmed}$`)
+          const res = regex.exec(content)
+          if (!res) continue
+          const args = s.args ? resolveArgs(s.args, res) : []
+          const argTxt = `${escapeArgs(args)} ${content.slice(res.index + res[0].length)}`
+          return session.execute(`meme.generate.${name} ${argTxt}`)
+        }
+      }
+
+      return next()
+    })
+  }
+
+  const refreshShortcuts = () => {
+    const tmpShortcuts: ShortcutInfo[] = []
+    for (const name in ctx.$.infos) {
+      for (const s of ctx.$.infos[name].shortcuts) {
+        tmpShortcuts.push({
+          name,
+          regex: new RE2(s.key),
+          args: s.args ?? undefined,
+        })
+      }
+    }
+    shortcuts.length = 0
+    shortcuts.push(...tmpShortcuts)
+  }
+
+  ctx.$.reRegisterGenerateCommands = async () => {
+    for (const cmd of generateSubCommands) cmd.dispose()
+    generateSubCommands.length = 0
+
+    generateSubCommands.push(
+      ...Object.values(ctx.$.infos).map((v) => registerGenerateCmd(v)),
+    )
+
+    if (config.enableShortcut) refreshShortcuts()
   }
   await ctx.$.reRegisterGenerateCommands()
-
-  // todo regex middleware
 }
