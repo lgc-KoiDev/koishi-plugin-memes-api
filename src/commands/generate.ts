@@ -1,4 +1,4 @@
-import { Command, Context, escapeRegExp, h, paramCase } from 'koishi'
+import { Command, Context, h, paramCase } from 'koishi'
 import {
   ActType,
   MemeError,
@@ -6,7 +6,6 @@ import {
   ParserOption,
   UserInfo,
 } from 'meme-generator-api'
-import RE2 from 're2'
 
 import { Config } from '../config'
 import { GetAvatarFailedError } from '../user-info'
@@ -14,10 +13,15 @@ import {
   ArgSyntaxError,
   checkInRange,
   constructBlobFromFileResp,
-  escapeArgs,
   formatRange,
   splitArgString,
 } from '../utils'
+
+declare module 'koishi' {
+  interface Session {
+    inShortcut?: boolean
+  }
+}
 
 declare module '../index' {
   interface MemeInternal {
@@ -26,11 +30,6 @@ declare module '../index' {
 }
 
 type ImageFetchInfo = { src: string } | { userId: string }
-interface ShortcutInfo {
-  name: string
-  regex: RE2
-  args?: string[]
-}
 
 export async function apply(ctx: Context, config: Config) {
   const cmdGenerate = ctx.$.cmd.subcommand('.generate')
@@ -93,20 +92,9 @@ export async function apply(ctx: Context, config: Config) {
   const registerGenerateCmd = (info: MemeInfoResponse) => {
     const { key, keywords } = info
 
-    const subCmd: Command<never, never, [h[], ...string[]], any> = cmdGenerate
-      .subcommand(`.${key} [args:el]`, {
-        strictOptions: true,
-        hidden: true,
-      })
-      .option('silent', '[silent:boolean]', { hidden: true })
+    const subCmd: Command<never, never, [h[], ...string[]], any> =
+      cmdGenerate.subcommand(`.${key} [args:el]`, { strictOptions: true, hidden: true })
     for (const kw of keywords) subCmd.alias(`.${kw}`)
-    if (config.enableShortcut) {
-      try {
-        for (const kw of keywords) subCmd.alias(kw, { options: { silent: true } })
-      } catch (e) {
-        ctx.logger.warn(e instanceof Error ? e.message : e)
-      }
-    }
     registerGenerateOptions(subCmd, info)
 
     return subCmd.action(async ({ session, options }, args) => {
@@ -216,7 +204,7 @@ export async function apply(ctx: Context, config: Config) {
         } catch (e) {
           if (e instanceof ArgSyntaxError) {
             ctx.logger.warn(e.message)
-            return options.silent
+            return config.silentShortcut && session.inShortcut
               ? undefined
               : session.text(ArgSyntaxError.getI18NKey(e), e)
           }
@@ -254,7 +242,7 @@ export async function apply(ctx: Context, config: Config) {
 
       // check image and text count
       if (!checkInRange(imageInfos.length, minImages, maxImages)) {
-        return options.silent
+        return config.silentShortcut && session.inShortcut
           ? undefined
           : session.text('memes-api.errors.image-number-mismatch', [
               formatRange(minImages, maxImages),
@@ -262,7 +250,7 @@ export async function apply(ctx: Context, config: Config) {
             ])
       }
       if (!checkInRange(texts.length, minTexts, maxTexts)) {
-        return options.silent
+        return config.silentShortcut && session.inShortcut
           ? undefined
           : session.text('memes-api.errors.text-number-mismatch', [
               formatRange(minTexts, maxTexts),
@@ -298,12 +286,12 @@ export async function apply(ctx: Context, config: Config) {
         await Promise.all(tasks)
       } catch (e) {
         if (e instanceof GetAvatarFailedError) {
-          return options.silent && config.moreSilent
+          return config.silentShortcut && session.inShortcut && config.moreSilent
             ? undefined
             : session.text('memes-api.errors.can-not-get-avatar', e)
         }
         ctx.logger.warn(e)
-        return options.silent && config.moreSilent
+        return config.silentShortcut && session.inShortcut && config.moreSilent
           ? undefined
           : session.text('memes-api.errors.download-image-failed')
       }
@@ -322,9 +310,10 @@ export async function apply(ctx: Context, config: Config) {
         if (e instanceof MemeError) {
           if (!e.type) throw e
           ctx.logger.warn(e)
-          return options.silent &&
-            ((e.response.status <= 540 && e.response.status > 560) || // arg error
-              config.moreSilent)
+          return config.silentShortcut &&
+            session.inShortcut &&
+            (config.moreSilent || // or arg error
+              (e.response.status <= 540 && e.response.status > 560))
             ? undefined
             : e.memeMessage
         }
@@ -334,96 +323,6 @@ export async function apply(ctx: Context, config: Config) {
     })
   }
 
-  const shortcuts: ShortcutInfo[] = []
-
-  if (config.enableShortcut) {
-    const extractContentPlaintext = (content: string) => {
-      let elems: h[]
-      try {
-        elems = h.parse(content)
-      } catch (e) {
-        return content
-      }
-
-      const textBuffer: string[] = []
-      const visit = (e: h) => {
-        if (e.children.length) {
-          for (const child of e.children) visit(child)
-        }
-        if (e.type === 'text') {
-          const t = e.attrs.content
-          if (t) textBuffer.push(t)
-        }
-      }
-      for (const child of elems) visit(child)
-      return textBuffer.join('')
-    }
-
-    const resolveArgs = (args: string[], res: RegExpExecArray) => {
-      return args.map((v) => {
-        // double bracket should escape it
-        return v.replace(/(?<l>[^\{])?\{(?<v>.+?)\}(?<r>[^\}])?/g, (...args) => {
-          type Groups = Record<'l' | 'r', string | undefined> & Record<'v', string>
-          const { l, v, r } = args[args.length - 1] as Groups
-          const index = parseInt(v)
-          let resolved: string
-          if (!isNaN(index)) {
-            // increase index because [1] is cmd pfx
-            resolved = res[index === 0 ? 0 : index + 1] ?? v
-          } else if (res.groups && v in res.groups) {
-            resolved = res.groups[v]
-          } else {
-            resolved = v
-          }
-          return `${l ?? ''}${extractContentPlaintext(resolved)}${r ?? ''}`
-        })
-      })
-    }
-
-    ctx.middleware(async (session, next) => {
-      const { content } = session
-      if (!content) return next()
-
-      const cmdPfxCfg = session.resolve((ctx.root.config as Context.Config).prefix)
-      const cmdPfx = cmdPfxCfg instanceof Array ? cmdPfxCfg : [cmdPfxCfg ?? '']
-      const hasEmptyPfx = cmdPfx.includes('')
-      const cmdPfxNotEmpty = cmdPfx.filter(Boolean)
-      const cmdPrefixRegex = cmdPfxNotEmpty.length
-        ? `(${cmdPfxNotEmpty.map(escapeRegExp).join('|')})${hasEmptyPfx ? '?' : ''}`
-        : '()' // keep group index correct
-
-      for (const name in ctx.$.infos) {
-        const info = ctx.$.infos[name]
-        for (const s of info.shortcuts) {
-          const trimmed = s.key.replace(/^\^/, '').replace(/\$$/, '')
-          const regex = new RE2(`^${cmdPrefixRegex}${trimmed}$`)
-          const res = regex.exec(content)
-          if (!res) continue
-          const args = s.args ? resolveArgs(s.args, res) : []
-          const argTxt = `${escapeArgs(args)} ${content.slice(res.index + res[0].length)}`
-          return session.execute(`meme.generate.${name} ${argTxt}`)
-        }
-      }
-
-      return next()
-    })
-  }
-
-  const refreshShortcuts = () => {
-    const tmpShortcuts: ShortcutInfo[] = []
-    for (const name in ctx.$.infos) {
-      for (const s of ctx.$.infos[name].shortcuts) {
-        tmpShortcuts.push({
-          name,
-          regex: new RE2(s.key),
-          args: s.args ?? undefined,
-        })
-      }
-    }
-    shortcuts.length = 0
-    shortcuts.push(...tmpShortcuts)
-  }
-
   ctx.$.reRegisterGenerateCommands = async () => {
     for (const cmd of generateSubCommands) cmd.dispose()
     generateSubCommands.length = 0
@@ -431,8 +330,5 @@ export async function apply(ctx: Context, config: Config) {
     generateSubCommands.push(
       ...Object.values(ctx.$.infos).map((v) => registerGenerateCmd(v)),
     )
-
-    if (config.enableShortcut) refreshShortcuts()
   }
-  await ctx.$.reRegisterGenerateCommands()
 }

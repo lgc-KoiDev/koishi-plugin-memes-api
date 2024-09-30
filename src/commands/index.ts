@@ -1,7 +1,8 @@
 import { Command, Context } from 'koishi'
 
 import { Config } from '../config'
-import * as CmdGenerate from './generate'
+import * as Generate from './generate'
+import * as Shortcut from './shortcut'
 
 declare module '../index' {
   interface MemeInternal {
@@ -11,5 +12,6 @@ declare module '../index' {
 
 export async function apply(ctx: Context, config: Config) {
   ctx.$.cmd = ctx.command('meme')
-  await CmdGenerate.apply(ctx, config)
+  await Generate.apply(ctx, config)
+  await Shortcut.apply(ctx, config)
 }

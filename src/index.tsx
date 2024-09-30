@@ -44,11 +44,12 @@ export async function apply(ctx: Context, config: Config) {
   ctx = ctx.isolate('$')
   ctx.set('$', {})
 
-  // internal vars
   ctx.inject(['notifier'], () => {
     ctx.$.notifier = ctx.notifier.create()
   })
+
   ctx.$.api = new MemeAPI(ctx.http.extend(config.requestConfig))
+
   ctx.$.infos = {}
   ctx.$.updateInfos = async (progressCallback) => {
     const keys = await ctx.$.api.getKeys()
@@ -70,9 +71,11 @@ export async function apply(ctx: Context, config: Config) {
     for (const k in ctx.$.infos) delete ctx.$.infos[k]
     Object.assign(ctx.$.infos, Object.fromEntries(newEntries))
   }
-  await UserInfo.apply(ctx, config)
 
-  // init
+  await UserInfo.apply(ctx, config)
+  await Commands.apply(ctx, config)
+
+  // init (and notify)
   const initMemeList = async () => {
     const tip = '获取表情信息中……'
     ctx.$.notifier?.update({ type: 'primary', content: tip })
@@ -109,7 +112,8 @@ export async function apply(ctx: Context, config: Config) {
   }
 
   try {
-    await Commands.apply(ctx, config)
+    await ctx.$.reRegisterGenerateCommands()
+    await ctx.$.refreshShortcuts?.()
   } catch (e) {
     try {
       ctx.$.cmd.dispose()
