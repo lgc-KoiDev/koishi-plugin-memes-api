@@ -2,10 +2,10 @@ import { Context } from 'koishi'
 import { MemeAPI, MemeInfoResponse } from 'meme-generator-api'
 import pLimit from 'p-limit'
 
+import * as Commands from './commands'
 import { Config } from './config'
 import { name } from './const'
 import zhCNLocale from './locales/zh-CN.yml'
-import * as Commands from './commands'
 import * as UserInfo from './user-info'
 
 import type {} from '@koishijs/plugin-help'
