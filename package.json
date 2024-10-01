@@ -58,7 +58,6 @@
   },
   "dependencies": {
     "meme-generator-api": "workspace:^",
-    "p-limit": "^6.1.0",
-    "re2": "^1.21.4"
+    "p-limit": "^6.1.0"
   }
 }

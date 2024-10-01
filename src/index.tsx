@@ -1,6 +1,5 @@
 import { Context } from 'koishi'
 import { MemeAPI, MemeInfoResponse } from 'meme-generator-api'
-import pLimit from 'p-limit'
 
 import * as Commands from './commands'
 import { Config } from './config'
@@ -40,6 +39,8 @@ declare module 'koishi' {
 }
 
 export async function apply(ctx: Context, config: Config) {
+  const { default: pLimit } = await import('p-limit')
+
   ctx.i18n.define('zh-CN', zhCNLocale)
   ctx.i18n.define('zh', zhCNLocale)
 
@@ -137,7 +138,6 @@ export async function apply(ctx: Context, config: Config) {
   try {
     await Commands.apply(ctx, config)
     await ctx.$.reRegisterGenerateCommands()
-    await ctx.$.refreshShortcuts?.()
   } catch (e) {
     try {
       ctx.$.cmd?.dispose()

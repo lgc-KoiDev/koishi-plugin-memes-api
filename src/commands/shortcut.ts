@@ -1,25 +1,10 @@
 import { Context, escapeRegExp, h } from 'koishi'
-import RE2 from 're2'
 
 import { Config } from '../config'
 import { escapeArgs } from '../utils'
 
-declare module '../index' {
-  interface MemeInternal {
-    refreshShortcuts?: () => Promise<void>
-  }
-}
-
-interface ShortcutInfo {
-  name: string
-  regex: RE2
-  args?: string[]
-}
-
 export async function apply(ctx: Context, config: Config) {
   if (!config.enableShortcut) return
-
-  const shortcuts: ShortcutInfo[] = []
 
   const extractContentPlaintext = (content: string) => {
     let elems: h[]
@@ -64,6 +49,10 @@ export async function apply(ctx: Context, config: Config) {
     })
   }
 
+  const transformRegex = (pythonRegex: string): string => {
+    return pythonRegex.replace(/\(\?P<(?<n>\w+?)>/g, '(?<$<n>>') // named groups
+  }
+
   ctx.middleware(async (session, next) => {
     const { content } = session
     if (!content) return next()
@@ -85,12 +74,16 @@ export async function apply(ctx: Context, config: Config) {
       const info = ctx.$.infos[name]
       const shortcuts = [
         ...info.shortcuts.map(
-          (v) => [v.key.replace(/^\^/, '').replace(/\$$/, ''), v.args ?? []] as const,
+          (v) =>
+            [
+              transformRegex(v.key.replace(/^\^/, '').replace(/\$$/, '')),
+              v.args ?? [],
+            ] as const,
         ),
-        ...info.keywords.map((v) => [v, [] as string[]] as const),
+        ...info.keywords.map((v) => [escapeRegExp(v), [] as string[]] as const),
       ]
       for (const [reg, args] of shortcuts) {
-        const regObj = new RE2(`^${cmdPrefixRegex}${reg}`)
+        const regObj = new RegExp(`^${cmdPrefixRegex}${reg}`)
         const res = regObj.exec(content)
         if (!res) continue
         const argTxt =
@@ -103,21 +96,4 @@ export async function apply(ctx: Context, config: Config) {
 
     return next()
   })
-
-  ctx.$.refreshShortcuts = async () => {
-    if (!config.enableShortcut) return
-
-    const tmpShortcuts: ShortcutInfo[] = []
-    for (const name in ctx.$.infos) {
-      for (const s of ctx.$.infos[name].shortcuts) {
-        tmpShortcuts.push({
-          name,
-          regex: new RE2(s.key),
-          args: s.args ?? undefined,
-        })
-      }
-    }
-    shortcuts.length = 0
-    shortcuts.push(...tmpShortcuts)
-  }
 }
