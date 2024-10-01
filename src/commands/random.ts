@@ -1,7 +1,7 @@
 import { Context, h, Random } from 'koishi'
 
 import { Config } from '../config'
-import { checkInRange } from '../utils'
+import { checkInRange, formatKeywords } from '../utils'
 import { ImagesAndInfos, ResolvedArgs } from './generate'
 
 export async function apply(ctx: Context, config: Config) {
@@ -78,9 +78,7 @@ export async function apply(ctx: Context, config: Config) {
       const elems = [h.image(await img.arrayBuffer(), img.type)]
       if (config.randomMemeShowInfo) {
         elems.unshift(
-          ...session.i18n('memes-api.random.info', [
-            info.keywords.map((v) => `“${v}”`).join('、'),
-          ]),
+          ...session.i18n('memes-api.random.info', [formatKeywords(info.keywords)]),
         )
       }
       return elems

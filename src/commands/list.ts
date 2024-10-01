@@ -10,7 +10,13 @@ import { Config, ListSortBy } from '../config'
 export async function apply(ctx: Context, config: Config) {
   let cachedList: MemeKeyWithProperties[] = []
 
-  ctx.$.cmd.subcommand('.list').action(async ({ session }) => {
+  const subCmd = ctx.$.cmd.subcommand('.list')
+
+  if (config.enableShortcut) {
+    subCmd.alias('表情包制作').alias('表情列表').alias('头像表情包').alias('文字表情包')
+  }
+
+  subCmd.action(async ({ session }) => {
     if (!session) return
 
     let memeList: MemeKeyWithProperties[]

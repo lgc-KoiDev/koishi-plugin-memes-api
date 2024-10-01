@@ -9,12 +9,13 @@ commands:
     description: 生成表情包，每个表情生成指令会注册为本指令的子指令
     examples: |-
       meme generate 5000兆 我去 洛天依
-      meme generate rua --圆 @自己
+      meme generate rua -圆 @自己
   meme.random:
     description: 生成随机表情
 
 memes-api:
   errors:
+    no-such-meme: 表情 {0} 不存在！
     syntax-error:
       unexpected-char: 参数语法错误，遇到意外字符 {char} ( 索引 {index} )，如果是左引号请考虑使用反斜杠转义。
       unterminated-quote: 参数语法错误，遇到未闭合引号 {char} ( 索引 {index} )。
@@ -33,6 +34,21 @@ memes-api:
       触发指令：“meme generate <关键词/序号> [...图片/文字]”
       发送指令 “meme info <关键词/序号>” 查看表情参数和预览
       目前支持的表情列表：
+      {0}
+
+  info:
+    key: 表情名：{0}
+    keywords: 关键词：{0}
+    shortcuts: 快捷指令：{0}
+    image-num: 需要图片数目：{0}
+    text-num: 需要文字数目：{0}
+    default-texts: 默认文字：{0}
+    option: ' * {0} - {1}'
+    options: |-
+      可选参数：
+      {0}
+    preview: |-
+      表情预览：
       {0}
 
   random:

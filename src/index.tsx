@@ -25,6 +25,7 @@ export interface MemeInternal {
   updateInfos: (
     progressCallback?: (now: number, total: number) => void,
   ) => Promise<void>
+  findMeme(query: string): MemeInfoResponse | undefined
 }
 export interface MemePublic {
   api: MemeAPI
@@ -72,9 +73,28 @@ export async function apply(ctx: Context, config: Config) {
     for (const k in ctx.$.infos) delete ctx.$.infos[k]
     Object.assign(ctx.$.infos, Object.fromEntries(newEntries))
   }
+  ctx.$.findMeme = (query) => {
+    query = query.trim()
+    if (query in ctx.$.infos) return ctx.$.infos[query]
+
+    query = query.toLowerCase()
+    for (const info of Object.values(ctx.$.infos)) {
+      for (const keyword of info.keywords) {
+        if (keyword.toLowerCase() === query) return info
+      }
+      for (const tag of info.tags) {
+        if (tag.toLowerCase() === query) return info
+      }
+      for (const { key, humanized } of info.shortcuts) {
+        const ok = humanized
+          ? humanized.toLowerCase() === query
+          : key.toLowerCase() === query
+        if (ok) return info
+      }
+    }
+  }
 
   await UserInfo.apply(ctx, config)
-  await Commands.apply(ctx, config)
 
   // init
   const initMemeList = async () => {
@@ -113,11 +133,12 @@ export async function apply(ctx: Context, config: Config) {
   }
 
   try {
+    await Commands.apply(ctx, config)
     await ctx.$.reRegisterGenerateCommands()
     await ctx.$.refreshShortcuts?.()
   } catch (e) {
     try {
-      ctx.$.cmd.dispose()
+      ctx.$.cmd?.dispose()
     } catch (_) {}
     ctx.logger.warn('Failed to initialize commands, plugin will not work')
     ctx.logger.warn(e)

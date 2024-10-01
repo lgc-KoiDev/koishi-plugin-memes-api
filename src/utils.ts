@@ -139,3 +139,17 @@ export function constructBlobFromFileResp(resp: FileResponse): Blob {
 export function formatRange(min: number, max: number): string {
   return min === max ? min.toString() : `${min} ~ ${max}`
 }
+
+export function formatKeywords(keywords: string[]): string {
+  return keywords.map((v) => `“${v}”`).join('、')
+}
+
+export function listJoin<T, V>(list: T[], splitter: V): (T | V)[] {
+  const newList: (T | V)[] = []
+  for (const item of list) {
+    newList.push(item)
+    newList.push(splitter)
+  }
+  newList.pop()
+  return newList
+}
