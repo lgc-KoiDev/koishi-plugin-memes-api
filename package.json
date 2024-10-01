@@ -9,9 +9,6 @@
     "dist"
   ],
   "license": "MIT",
-  "workspaces": [
-    "external/*"
-  ],
   "author": "student_2333 <lgc2333@126.com>",
   "homepage": "https://github.com/lgc-KoiDev/koishi-plugin-memes-api",
   "scripts": {
