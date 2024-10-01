@@ -26,7 +26,10 @@ export interface MemeInternal {
     progressCallback?: (now: number, total: number) => void,
   ) => Promise<void>
 }
-export interface MemePublic {}
+export interface MemePublic {
+  api: MemeAPI
+  infos: Record<string, MemeInfoResponse>
+}
 declare module 'koishi' {
   interface Context {
     $: MemeInternal
@@ -37,8 +40,6 @@ declare module 'koishi' {
 export async function apply(ctx: Context, config: Config) {
   ctx.i18n.define('zh-CN', zhCNLocale)
   ctx.i18n.define('zh', zhCNLocale)
-
-  ctx.set('memesApi', {})
 
   // isolate new context for plugin internal use
   ctx = ctx.isolate('$')
@@ -75,7 +76,7 @@ export async function apply(ctx: Context, config: Config) {
   await UserInfo.apply(ctx, config)
   await Commands.apply(ctx, config)
 
-  // init (and notify)
+  // init
   const initMemeList = async () => {
     const tip = '获取表情信息中……'
     ctx.$.notifier?.update({ type: 'primary', content: tip })
@@ -132,6 +133,13 @@ export async function apply(ctx: Context, config: Config) {
     })
     return
   }
+
+  // public apis
+  const $public: MemePublic = {
+    api: ctx.$.api,
+    infos: ctx.$.infos,
+  }
+  ctx.set('memesApi', $public)
 
   const memeCount = Object.keys(ctx.$.infos).length
   ctx.timer.setTimeout(() => {

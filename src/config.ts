@@ -10,6 +10,8 @@ export interface CommandConfig {
   autoUseDefaultTexts: boolean
   autoUseSenderAvatarWhenOnlyOne: boolean
   autoUseSenderAvatarWhenOneLeft: boolean
+  randomMemeShowInfo: boolean
+  generateCommandCountToFather: boolean
 }
 
 export interface RequestConfig {
@@ -50,6 +52,8 @@ export const CommandConfig: Schema<CommandConfig> = Schema.intersect([
     autoUseDefaultTexts: Schema.boolean().default(true),
     autoUseSenderAvatarWhenOnlyOne: Schema.boolean().default(true),
     autoUseSenderAvatarWhenOneLeft: Schema.boolean().default(true),
+    randomMemeShowInfo: Schema.boolean().default(true),
+    generateCommandCountToFather: Schema.boolean().default(false),
   }),
 ])
 

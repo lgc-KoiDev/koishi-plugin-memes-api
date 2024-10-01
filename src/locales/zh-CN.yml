@@ -8,17 +8,23 @@ memes-api:
     can-not-get-avatar: 无法获取平台 {platform} 中 ID 为 {userId} 的用户的头像信息。
     download-image-failed: 下载图片失败。
 
+  random:
+    no-suitable-meme: 找不到符合参数数量的表情。
+    info: 关键词：{0}
+
 _config:
   - $desc: 指令设置
     enableShortcut: |-
       是否注册类似原版 `memes` 插件的触发指令。  
       例：`meme generate 5000兆 我去 洛天依` -> `5000兆 我去 洛天依`
-    shortcutUsePrefix: 快捷指令是否需要携带指令前缀。
+    shortcutUsePrefix: 表情生成快捷指令是否需要携带指令前缀。
     silentShortcut: 是否禁用使用原版触发指令时的 参数错误提示。
     moreSilent: 是否禁用使用原版触发指令时的 **所有** 错误提示。
     autoUseDefaultTexts: 是否在用户未提供文字时自动使用默认文字。
     autoUseSenderAvatarWhenOnlyOne: 是否在仅需求一张图片且用户未提供时自动使用发送者头像。
     autoUseSenderAvatarWhenOneLeft: 是否在用户已提供图片但距离最少需求图片数仅差 1 时自动使用发送者头像。
+    randomMemeShowInfo: 使用 `meme random` 指令时是否同时发出表情关键词。
+    generateCommandCountToFather: 执行生成表情子指令时是否同时增加父指令的调用计数。
 
   - $desc: 缓存设置
     cacheDir: 插件图片缓存存放的目录。
