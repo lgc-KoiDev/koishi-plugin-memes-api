@@ -4,14 +4,15 @@ import pLimit from 'p-limit'
 
 import * as Commands from './commands'
 import { Config } from './config'
-import { name } from './const'
 import zhCNLocale from './locales/zh-CN.yml'
 import * as UserInfo from './user-info'
 
 import type {} from '@koishijs/plugin-help'
 import type { Notifier } from '@koishijs/plugin-notifier'
 
-export { Config, name }
+export { Config }
+
+export const name = 'memes-api'
 
 export const inject = {
   required: ['http'],
@@ -51,8 +52,8 @@ export async function apply(ctx: Context, config: Config) {
   })
 
   ctx.$.api = new MemeAPI(ctx.http.extend(config.requestConfig))
-
   ctx.$.infos = {}
+
   ctx.$.updateInfos = async (progressCallback) => {
     const keys = await ctx.$.api.getKeys()
     const len = keys.length
@@ -73,6 +74,7 @@ export async function apply(ctx: Context, config: Config) {
     for (const k in ctx.$.infos) delete ctx.$.infos[k]
     Object.assign(ctx.$.infos, Object.fromEntries(newEntries))
   }
+
   ctx.$.findMeme = (query) => {
     query = query.trim()
     if (query in ctx.$.infos) return ctx.$.infos[query]
