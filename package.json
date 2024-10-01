@@ -57,7 +57,7 @@
     "koishi-plugin-adapter-onebot": "^6.7.2"
   },
   "dependencies": {
-    "meme-generator-api": "workspace:^",
+    "meme-generator-api": "^0.1.0",
     "p-limit": "^6.1.0"
   }
 }
