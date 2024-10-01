@@ -14,6 +14,11 @@ export async function apply(ctx: Context, config: Config) {
   subCmd.action(async ({ session }, args) => {
     if (!session) return
 
+    if (config.randomCommandCountToGenerate) {
+      const msg = await ctx.$.checkAndCountToGenerate(session)
+      if (msg) return msg
+    }
+
     let resolvedArgs: ResolvedArgs
     try {
       resolvedArgs = await ctx.$.resolveArgs(session, args ?? [])

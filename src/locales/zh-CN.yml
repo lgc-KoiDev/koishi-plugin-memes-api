@@ -1,3 +1,18 @@
+commands:
+  meme:
+    description: 制作各种沙雕表情
+  meme.list:
+    description: 查看表情列表
+  meme.info:
+    description: 查看表情详情
+  meme.generate:
+    description: 生成表情包，每个表情生成指令会注册为本指令的子指令
+    examples: |-
+      meme generate 5000兆 我去 洛天依
+      meme generate rua --圆 @自己
+  meme.random:
+    description: 生成随机表情
+
 memes-api:
   errors:
     syntax-error:
@@ -8,12 +23,24 @@ memes-api:
     can-not-get-avatar: 无法获取平台 {platform} 中 ID 为 {userId} 的用户的头像信息。
     download-image-failed: 下载图片失败。
 
+  list:
+    tip: |-
+      触发方式：“关键词 + 图片/文字”
+      发送 “表情详情 + 关键词” 查看表情参数和预览
+      目前支持的表情列表：
+      {0}
+    tip-no-shortcut: |-
+      触发指令：“meme generate <关键词/序号> [...图片/文字]”
+      发送指令 “meme info <关键词/序号>” 查看表情参数和预览
+      目前支持的表情列表：
+      {0}
+
   random:
     no-suitable-meme: 找不到符合参数数量的表情。
     info: 关键词：{0}
 
 _config:
-  - $desc: 指令设置
+  - $desc: 生成指令配置
     enableShortcut: |-
       是否注册类似原版 `memes` 插件的触发指令。  
       例：`meme generate 5000兆 我去 洛天依` -> `5000兆 我去 洛天依`
@@ -23,10 +50,30 @@ _config:
     autoUseDefaultTexts: 是否在用户未提供文字时自动使用默认文字。
     autoUseSenderAvatarWhenOnlyOne: 是否在仅需求一张图片且用户未提供时自动使用发送者头像。
     autoUseSenderAvatarWhenOneLeft: 是否在用户已提供图片但距离最少需求图片数仅差 1 时自动使用发送者头像。
-    randomMemeShowInfo: 使用 `meme random` 指令时是否同时发出表情关键词。
-    generateCommandCountToFather: 执行生成表情子指令时是否同时增加父指令的调用计数。
 
-  - $desc: 缓存设置
+  - $desc: 表情列表配置
+    listSortBy:
+      $desc: 表情排序方式。
+      $inner:
+        - 默认
+        - 表情类型
+        - 表情名
+        - 关键词
+        - 创建时间
+        - 修改时间
+    listSortReverse: 是否倒序排列。
+    listNewTimeDelta: 表情添加时间在该时间间隔（单位为天）以内时，在列表中添加新表情标识。
+    listTextTemplate: |-
+      表情显示文字模板。  
+      可用变量：`{index}`（序号）、`{key}`（表情名）、`{keywords}`（关键词）、`{shortcuts}`（快捷指令）、`{tags}`（标签）
+    listAddCategoryIcon: 是否添加图标以表示表情类型，即“图片表情包”和“文字表情包”。
+
+  - $desc: 其他指令配置
+    randomMemeShowInfo: 使用 `meme random` 指令时是否同时发出表情关键词。
+    generateSubCommandCountToFather: 执行生成表情子指令时是否同时增加父指令的调用计数（对于 `rate-limit` 插件）。
+    randomCommandCountToGenerate: 执行 `meme random` 指令时是否同时增加 `meme generate` 指令的调用计数（对于 `rate-limit` 插件）。
+
+  - $desc: 缓存配置
     cacheDir: 插件图片缓存存放的目录。
     keepCache: 插件会在每次加载时清空已缓存图片，启用该配置则插件不会自动清理缓存。
 

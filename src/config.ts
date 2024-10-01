@@ -2,7 +2,7 @@ import { HTTP, Schema } from 'koishi'
 
 import zhCNLocale from './locales/zh-CN.yml'
 
-export interface CommandConfig {
+export interface GenerateCommandConfig {
   enableShortcut: boolean
   shortcutUsePrefix?: boolean
   silentShortcut?: boolean
@@ -10,8 +10,33 @@ export interface CommandConfig {
   autoUseDefaultTexts: boolean
   autoUseSenderAvatarWhenOnlyOne: boolean
   autoUseSenderAvatarWhenOneLeft: boolean
+}
+
+export enum ListSortBy {
+  default = 'default',
+  type = 'type',
+  key = 'key',
+  keywords = 'keywords',
+  dateCreated = 'dateCreated',
+  dateModified = 'dateModified',
+}
+export interface ListConfig {
+  listSortBy: ListSortBy
+  listSortReverse: boolean
+  listNewTimeDelta: number
+  listTextTemplate: string
+  listAddCategoryIcon: boolean
+}
+
+export interface OtherCommandConfig {
   randomMemeShowInfo: boolean
-  generateCommandCountToFather: boolean
+  generateSubCommandCountToFather: boolean
+  randomCommandCountToGenerate: boolean
+}
+
+export interface CacheConfig {
+  cacheDir: string
+  keepCache: boolean
 }
 
 export interface RequestConfig {
@@ -19,7 +44,11 @@ export interface RequestConfig {
   getInfoConcurrency: number
 }
 
-export type Config = CommandConfig & RequestConfig
+export type Config = GenerateCommandConfig &
+  OtherCommandConfig &
+  ListConfig &
+  CacheConfig &
+  RequestConfig
 
 const shortcutCmdConfig = Schema.object({
   enableShortcut: Schema.boolean().default(true),
@@ -46,16 +75,36 @@ const shortcutCmdCfgWithMoreSilent = Schema.intersect([
     Schema.object({}),
   ]),
 ])
-export const CommandConfig: Schema<CommandConfig> = Schema.intersect([
+export const GenerateCommandConfig: Schema<GenerateCommandConfig> = Schema.intersect([
   shortcutCmdCfgWithMoreSilent,
   Schema.object({
     autoUseDefaultTexts: Schema.boolean().default(true),
     autoUseSenderAvatarWhenOnlyOne: Schema.boolean().default(true),
     autoUseSenderAvatarWhenOneLeft: Schema.boolean().default(true),
-    randomMemeShowInfo: Schema.boolean().default(true),
-    generateCommandCountToFather: Schema.boolean().default(false),
   }),
 ])
+
+export const ListConfig: Schema<ListConfig> = Schema.object({
+  listSortBy: Schema.union(Object.values(ListSortBy)).default(ListSortBy.default),
+  listSortReverse: Schema.boolean().default(false),
+  listNewTimeDelta: Schema.natural().min(1).default(30),
+  listTextTemplate: Schema.string().default('{keywords}'),
+  listAddCategoryIcon: Schema.boolean().default(true),
+})
+
+export const OtherCommandConfig: Schema<OtherCommandConfig> = Schema.object({
+  randomMemeShowInfo: Schema.boolean().default(true),
+  generateSubCommandCountToFather: Schema.boolean().default(false),
+  randomCommandCountToGenerate: Schema.boolean().default(false),
+})
+
+export const CacheConfig: Schema<CacheConfig> = Schema.object({
+  cacheDir: Schema.path({
+    filters: ['directory'],
+    allowCreate: true,
+  }).default('cache/memes'),
+  keepCache: Schema.boolean().default(false),
+}).hidden() // LAZY TO IMPL CACHE
 
 export const RequestConfig: Schema<RequestConfig> = Schema.object({
   requestConfig: HTTP.createConfig('http://127.0.0.1:2233'),
@@ -63,7 +112,10 @@ export const RequestConfig: Schema<RequestConfig> = Schema.object({
 })
 
 export const Config: Schema<Config> = Schema.intersect([
-  CommandConfig,
+  GenerateCommandConfig,
+  ListConfig,
+  OtherCommandConfig,
+  CacheConfig,
   RequestConfig,
 ]).i18n({
   'zh-CN': zhCNLocale._config,

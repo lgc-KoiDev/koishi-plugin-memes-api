@@ -1,6 +1,7 @@
 import { Command, Context, h, paramCase, Session } from 'koishi'
 import {
   ActType,
+  MemeArgsResponse,
   MemeError,
   MemeInfoResponse,
   ParserOption,
@@ -24,6 +25,13 @@ declare module 'koishi' {
   }
 }
 
+export interface OptionInfo {
+  names: string[]
+  argName: string
+  type: string
+  description: string
+}
+
 export type ImageFetchInfo = { src: string } | { userId: string }
 export interface ResolvedArgs {
   imageInfos: ImageFetchInfo[]
@@ -37,7 +45,8 @@ export interface ImagesAndInfos {
 declare module '../index' {
   interface MemeInternal {
     argTypeMap: Record<string, string>
-    transformOptions: (
+    transformToKoishiOptions: (args: MemeArgsResponse) => OptionInfo[]
+    applyOptionEffects: (
       session: Session,
       options: Record<string, any>,
       info: MemeInfoResponse,
@@ -54,6 +63,7 @@ declare module '../index' {
       e: any,
     ) => h.Fragment | undefined
     handleRenderError: (session: Session, e: any) => h.Fragment | undefined
+    checkAndCountToGenerate(session: Session): Promise<h[] | undefined>
   }
 }
 
@@ -72,7 +82,51 @@ export async function apply(ctx: Context, config: Config) {
     bool: 'boolean',
   }
 
-  ctx.$.transformOptions = async (session, options, info) => {
+  ctx.$.transformToKoishiOptions = (args: MemeArgsResponse) => {
+    const options: OptionInfo[] = []
+
+    for (const arg of args.parser_options) {
+      const trimmedNames = arg.names.map((v) => v.replace(/^-+/, ''))
+      const name =
+        trimmedNames.filter((v) => v in args.args_model.properties)[0] ??
+        trimmedNames.filter((v) => /^[a-zA-Z0-9-_]+$/.test(v)).sort((v) => -v.length)[0]
+      const aliases = trimmedNames.filter((v) => v !== name)
+
+      // no args treated as boolean option
+      if (!arg.args) {
+        options.push({
+          names: [name, ...aliases],
+          argName: name,
+          type: 'boolean',
+          description: arg.help_text ?? '',
+        })
+        continue
+      }
+
+      const transformArgType = (value: string): string => {
+        if (value in ctx.$.argTypeMap) return ctx.$.argTypeMap[value]
+        ctx.logger.warn(`Unsupported arg type ${value} in arg ${name}`)
+        return 'string'
+      }
+      const withSuffix = arg.args && arg.args.length > 1 // consider an arg with multiple values, koishi doesn't support this
+      const aliasesSuffixed = withSuffix ? aliases.map((v) => `${v}-${name}`) : aliases
+      for (const argInfo of arg.args) {
+        const argName = argInfo?.name ?? name
+        const argType = argInfo ? transformArgType(argInfo.value) : 'boolean'
+        const nameSuffixed = withSuffix ? `${name}-${paramCase(argName)}` : name
+        options.push({
+          names: [nameSuffixed, ...aliasesSuffixed],
+          argName,
+          type: argType,
+          description: arg.help_text ?? '',
+        })
+      }
+    }
+
+    return options
+  }
+
+  ctx.$.applyOptionEffects = async (session, options, info) => {
     const parserOptions = info.params_type.args_type?.parser_options
     if (!parserOptions) return options
 
@@ -243,45 +297,24 @@ export async function apply(ctx: Context, config: Config) {
       : e.memeMessage
   }
 
+  ctx.$.checkAndCountToGenerate = async (session) => {
+    session.inGenerateSubCommand = true
+    const fatherRet = await session.execute('meme.generate', true)
+    // father command should return empty array if inGenerateSubCommand is true
+    return fatherRet.length ? fatherRet : undefined
+  }
+
   const registerGenerateOptions = (cmd: Command, info: MemeInfoResponse) => {
     const {
       params_type: { args_type: args },
     } = info
     if (!args) return cmd
 
-    for (const arg of args.parser_options) {
-      const trimmedNames = arg.names.map((v) => v.replace(/^-+/, ''))
-      const name =
-        trimmedNames.filter((v) => v in args.args_model.properties)[0] ??
-        trimmedNames.filter((v) => /^[a-zA-Z0-9-_]+$/.test(v)).sort((v) => -v.length)[0]
-      const aliases = trimmedNames.filter((v) => v !== name)
-
-      // no args treated as boolean option
-      if (!arg.args) {
-        cmd.option(name, `[${name}:boolean] ${arg.help_text ?? ''}`, { aliases })
-        continue
-      }
-
-      const transformArgType = (value: string): string => {
-        if (value in ctx.$.argTypeMap) return ctx.$.argTypeMap[value]
-        ctx.logger.warn(
-          `Unsupported arg type ${value} in arg ${name} of meme ${info.key}`,
-        )
-        return 'string'
-      }
-
-      const withSuffix = arg.args && arg.args.length > 1
-      const aliasesSuffixed = withSuffix ? aliases.map((v) => `${v}-${name}`) : aliases
-      for (const argInfo of arg.args) {
-        const argName = argInfo?.name ?? name
-        const argType = argInfo ? transformArgType(argInfo.value) : 'boolean'
-        const nameSuffixed = withSuffix ? `${name}-${paramCase(argName)}` : name
-        cmd.option(nameSuffixed, `[${argName}:${argType}] ${arg.help_text ?? ''}`, {
-          aliases: aliasesSuffixed,
-        })
-      }
+    for (const opt of ctx.$.transformToKoishiOptions(args)) {
+      const { names, argName, type, description } = opt
+      const [name, ...aliases] = names
+      cmd.option(name, `[${argName}:${type}] ${description}`, { aliases })
     }
-
     return cmd
   }
 
@@ -296,16 +329,13 @@ export async function apply(ctx: Context, config: Config) {
     return subCmd.action(async ({ session, options }, args) => {
       if (!session) return
 
-      // let generate subcommand add father command execute count
-      session.inGenerateSubCommand = true
-      if (config.generateCommandCountToFather) {
-        const fatherRet = await session.execute('meme.generate', true)
-        // father command should return empty array if inGenerateSubCommand is true
-        if (fatherRet.length) return fatherRet
+      if (config.generateSubCommandCountToFather) {
+        const msg = await ctx.$.checkAndCountToGenerate(session)
+        if (msg) return msg
       }
 
       if (options) {
-        options = await ctx.$.transformOptions(session, options, info)
+        options = await ctx.$.applyOptionEffects(session, options, info)
       }
 
       let resolvedArgs: ResolvedArgs
@@ -383,7 +413,6 @@ export async function apply(ctx: Context, config: Config) {
   ctx.$.reRegisterGenerateCommands = async () => {
     for (const cmd of generateSubCommands) cmd.dispose()
     generateSubCommands.length = 0
-
     generateSubCommands.push(
       ...Object.values(ctx.$.infos).map((v) => registerGenerateCmd(v)),
     )
