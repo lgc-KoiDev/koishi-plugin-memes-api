@@ -3,11 +3,11 @@
 <div align="center">
 
 <a href="https://koishi.chat/zh-CN/market/">
-  <img src="https://raw.githubusercontent.com/lgc-KoiDev/readme/master/workspace/koishi-plugin.png" width="180" height="180" alt="NoneBotPluginLogo">
+  <img src="https://raw.githubusercontent.com/lgc-KoiDev/readme/master/workspace/koishi-plugin.png" width="180" height="180" alt="KoishiPluginLogo">
 </a>
 
 <p>
-  <img src="https://raw.githubusercontent.com/lgc-KoiDev/readme/master/workspace/KoishiPlugin.svg" width="240" alt="NoneBotPluginText">
+  <img src="https://raw.githubusercontent.com/lgc-KoiDev/readme/master/workspace/KoishiPlugin.svg" width="240" alt="KoishiPluginText">
 </p>
 
 # Koishi-Plugin-Memes-API
@@ -18,10 +18,10 @@ _✨ 表情包制作插件调用 API 版 ✨_
   <img src="https://img.shields.io/github/license/lgc-KoiDev/koishi-plugin-memes-api.svg" alt="license">
 </a>
 <a href="https://www.npmjs.com/package/koishi-plugin-memes-api">
-  <img src="https://img.shields.io/npm/v/koishi-plugin-memes-api" alt="pypi">
+  <img src="https://img.shields.io/npm/v/koishi-plugin-memes-api" alt="npm">
 </a>
 <a href="https://www.npmjs.com/package/koishi-plugin-memes-api">
-  <img src="https://img.shields.io/npm/dm/koishi-plugin-memes-api" alt="pypi download">
+  <img src="https://img.shields.io/npm/dm/koishi-plugin-memes-api" alt="npm download">
 </a>
 <a href="https://wakatime.com/badge/user/b61b0f9a-f40b-4c82-bc51-0a75c67bfccf/project/79af41ae-0173-4c1f-9db2-f87d94569c76">
   <img src="https://wakatime.com/badge/user/b61b0f9a-f40b-4c82-bc51-0a75c67bfccf/project/79af41ae-0173-4c1f-9db2-f87d94569c76.svg" alt="wakatime">
@@ -31,12 +31,13 @@ _✨ 表情包制作插件调用 API 版 ✨_
 
 ## 📖 介绍
 
-这是我写的第一个 Koishi 插件，还不是很熟练，代码屎山或者体验不好请见谅，大佬轻喷
+![rua](https://raw.githubusercontent.com/lgc-KoiDev/readme/master/memes-api/rua-koishi.gif)
 
 ## 📦 配置 & 使用
 
 请安装插件后自行查看 Koishi 控制台内的帮助信息、插件注册的指令以及 I18N 项目
 
+<!--
 ## 🗒️ TODO
 
 ~~_虽然但是，写在这里的不一定会做，我是大懒逼_~~
@@ -44,6 +45,7 @@ _✨ 表情包制作插件调用 API 版 ✨_
 - [x] 支持 AT 获取头像
 - [ ] 缓存渲好的 Meme
 - [ ] 内置 `meme-generator`
+-->
 
 ## 💡 鸣谢
 
@@ -75,6 +77,17 @@ Telegram：[@lgc2333](https://t.me/lgc2333)
 感谢大家的赞助！你们的赞助将是我继续创作的动力！
 
 ## 📝 更新日志
+
+### 1.0.0
+
+插件重构：
+
+- 现在生成指令注册为 `meme.generate` 的子指令，可选参数以 Koishi 命令选项形式注册，需要放在参数最前
+- 添加了 `meme.random` 指令
+- 一些配置的添加与修改、某些用户体验的变更
+
+<details>
+<summary>v0 更新日志（点击展开）</summary>
 
 ### 0.1.29 ~ 0.1.30
 
@@ -175,3 +188,5 @@ Telegram：[@lgc2333](https://t.me/lgc2333)
 ### 0.1.1 ~ 0.1.2
 
 - 修复 & 小调整
+
+</details>
