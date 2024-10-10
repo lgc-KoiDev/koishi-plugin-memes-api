@@ -3,8 +3,57 @@ import { Context, escapeRegExp, h } from 'koishi'
 import { Config } from '../config'
 import { escapeArgs } from '../utils'
 
+declare module '../index' {
+  interface MemeInternal {
+    refreshShortcuts: () => Promise<void>
+  }
+}
+
+interface ShortcutInfo {
+  name: string
+  regex: string
+  args: string[]
+}
+interface KeywordInfo {
+  name: string
+  keyword: string
+}
+
 export async function apply(ctx: Context, config: Config) {
   if (!config.enableShortcut) return
+
+  const shortcuts: ShortcutInfo[] = []
+
+  ctx.$.refreshShortcuts = async () => {
+    const tmpKeywords: KeywordInfo[] = []
+    const tmpRegExps: ShortcutInfo[] = []
+
+    for (const name in ctx.$.infos) {
+      const info = ctx.$.infos[name]
+      info.keywords.forEach((keyword) => {
+        tmpKeywords.push({ name, keyword })
+      })
+      info.shortcuts.forEach(({ key, args }) => {
+        tmpRegExps.push({
+          name,
+          regex: transformRegex(key.replace(/^\^/, '').replace(/\$$/, '')),
+          args: args ?? [],
+        })
+      })
+    }
+
+    const tmpShortcuts: ShortcutInfo[] = [
+      ...tmpKeywords
+        .sort((a, b) => b.keyword.length - a.keyword.length)
+        .map(({ name, keyword }) => {
+          return { name, regex: escapeRegExp(keyword), args: [] }
+        }),
+      ...tmpRegExps,
+    ]
+
+    shortcuts.length = 0
+    shortcuts.push(...tmpShortcuts)
+  }
 
   const extractContentPlaintext = (content: string) => {
     let elems: h[]
@@ -37,8 +86,7 @@ export async function apply(ctx: Context, config: Config) {
         const index = parseInt(v)
         let resolved: string
         if (!isNaN(index)) {
-          // increase index because [1] is cmd pfx
-          resolved = res[index === 0 ? 0 : index + 1] ?? v
+          resolved = res[index] ?? v
         } else if (res.groups && v in res.groups) {
           resolved = res.groups[v]
         } else {
@@ -64,34 +112,21 @@ export async function apply(ctx: Context, config: Config) {
         const hasEmptyPfx = cmdPfx.includes('')
         const cmdPfxNotEmpty = cmdPfx.filter(Boolean)
         if (cmdPfxNotEmpty.length) {
-          return `(${cmdPfxNotEmpty.map(escapeRegExp).join('|')})${hasEmptyPfx ? '?' : ''}`
+          return `(?:${cmdPfxNotEmpty.map(escapeRegExp).join('|')})${hasEmptyPfx ? '?' : ''}`
         }
       }
-      return '()' // keep group index correct
+      return ''
     })()
 
-    for (const name in ctx.$.infos) {
-      const info = ctx.$.infos[name]
-      const shortcuts = [
-        ...info.shortcuts.map(
-          (v) =>
-            [
-              transformRegex(v.key.replace(/^\^/, '').replace(/\$$/, '')),
-              v.args ?? [],
-            ] as const,
-        ),
-        ...info.keywords.map((v) => [escapeRegExp(v), [] as string[]] as const),
-      ]
-      for (const [reg, args] of shortcuts) {
-        const regObj = new RegExp(`^${cmdPrefixRegex}${reg}`)
-        const res = regObj.exec(content)
-        if (!res) continue
-        const argTxt =
-          `${escapeArgs(resolveArgs(args, res))}` +
-          ` ${content.slice(res.index + res[0].length)}`
-        session.inShortcut = true
-        return session.execute(`meme.generate.${name} ${argTxt}`)
-      }
+    for (const { name, regex, args } of shortcuts) {
+      const res = new RegExp(`^${cmdPrefixRegex}${regex}`).exec(content)
+      if (!res) continue
+
+      const argTxt =
+        `${escapeArgs(resolveArgs(args, res))}` +
+        ` ${content.slice(res.index + res[0].length)}`
+      session.inShortcut = true
+      return session.execute(`meme.generate.${name} ${argTxt}`)
     }
 
     return next()

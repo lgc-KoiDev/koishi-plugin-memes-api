@@ -99,6 +99,9 @@ export async function apply(ctx: Context, config: Config) {
 
   await UserInfo.apply(ctx, config)
 
+  const throttleDelay = 250
+  const afterInitDelay = 600
+
   // init
   const initMemeList = async () => {
     const tip = '获取表情信息中……'
@@ -114,7 +117,7 @@ export async function apply(ctx: Context, config: Config) {
             </progress>
           </p>,
         )
-      }, 250),
+      }, throttleDelay),
     )
   }
   try {
@@ -122,38 +125,43 @@ export async function apply(ctx: Context, config: Config) {
   } catch (e) {
     ctx.logger.warn('Failed to fetch meme list, plugin will not work')
     ctx.logger.warn(e)
-    ctx.$.notifier?.update({
-      type: 'danger',
-      content: (
-        <p>
-          获取表情信息失败，插件将不会工作！
-          <br />
-          请检查你的请求设置以及 meme-generator 的部署状态，更多信息请查看日志。
-        </p>
-      ),
-    })
+    ctx.timer.setTimeout(() => {
+      ctx.$.notifier?.update({
+        type: 'danger',
+        content: (
+          <p>
+            获取表情信息失败，插件将不会工作！
+            <br />
+            请检查你的请求设置以及 meme-generator 的部署状态，更多信息请查看日志。
+          </p>
+        ),
+      })
+    }, afterInitDelay)
     return
   }
 
   try {
     await Commands.apply(ctx, config)
     await ctx.$.reRegisterGenerateCommands()
+    await ctx.$.refreshShortcuts()
   } catch (e) {
     try {
       ctx.$.cmd?.dispose()
     } catch (_) {}
     ctx.logger.warn('Failed to initialize commands, plugin will not work')
     ctx.logger.warn(e)
-    ctx.$.notifier?.update({
-      type: 'danger',
-      content: (
-        <p>
-          注册插件指令时出错，插件将不会工作！
-          <br />
-          更多信息请查看日志。
-        </p>
-      ),
-    })
+    ctx.timer.setTimeout(() => {
+      ctx.$.notifier?.update({
+        type: 'danger',
+        content: (
+          <p>
+            注册插件指令时出错，插件将不会工作！
+            <br />
+            更多信息请查看日志。
+          </p>
+        ),
+      })
+    }, afterInitDelay)
     return
   }
 
@@ -170,6 +178,6 @@ export async function apply(ctx: Context, config: Config) {
       type: 'success',
       content: <p>插件初始化完毕，共载入 {memeCount} 个表情。</p>,
     })
-  }, 600)
+  }, afterInitDelay)
   ctx.logger.info(`Plugin initialized successfully, loaded ${memeCount} memes`)
 }
