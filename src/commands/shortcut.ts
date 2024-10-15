@@ -5,7 +5,7 @@ import { escapeArgs } from '../utils'
 
 declare module '../index' {
   interface MemeInternal {
-    refreshShortcuts: () => Promise<void>
+    refreshShortcuts?: () => Promise<void>
   }
 }
 

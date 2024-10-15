@@ -143,7 +143,7 @@ export async function apply(ctx: Context, config: Config) {
   try {
     await Commands.apply(ctx, config)
     await ctx.$.reRegisterGenerateCommands()
-    await ctx.$.refreshShortcuts()
+    await ctx.$.refreshShortcuts?.()
   } catch (e) {
     try {
       ctx.$.cmd?.dispose()
