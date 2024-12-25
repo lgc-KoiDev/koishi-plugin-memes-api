@@ -47,8 +47,8 @@
     ]
   },
   "peerDependencies": {
-    "koishi": "^4.18.4",
-    "@cordisjs/element": "^0.1.0"
+    "@cordisjs/element": "^0.1.0",
+    "koishi": "^4.18.4"
   },
   "devDependencies": {
     "@koishijs/plugin-help": "^2.4.4",
