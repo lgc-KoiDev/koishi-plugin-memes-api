@@ -9,7 +9,7 @@
     "dist"
   ],
   "license": "MIT",
-  "author": "student_2333 <lgc2333@126.com>",
+  "author": "LgCookie <lgc2333@126.com>",
   "homepage": "https://github.com/lgc-KoiDev/koishi-plugin-memes-api",
   "scripts": {
     "build:console": "koishi-console build"
