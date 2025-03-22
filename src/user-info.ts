@@ -54,27 +54,26 @@ export async function apply(ctx: Context, config: Config) {
     }
 
     const fallback = async (): Promise<ImageAndUserInfo> => {
-      let user
-      if (typeof session.bot.getUser === 'function') {
-        user = await session.bot.getUser(userId, session.guildId);
-        if (!user.avatar) {
-          throw new TypeError(`User ${userId} in platform ${session.platform} has no avatar`);
-        }
-        return {
-          url: user.avatar,
-          userInfo: { name: user.nick || user.name || '', gender: 'unknown' },
-        };
-      } else if (session.event.user?.avatar?.includes('http')) {
+      if (session.event.user?.id === userId && session.event.user?.avatar) {
         return {
           url: session.event.user.avatar,
-          userInfo: { name: session.username || session.userId || '', gender: 'unknown' },
-        };
-      } else {
-        return {
-          url: '',
-          userInfo: { name: session.username || session.userId || '', gender: 'unknown' },
-        };
+          userInfo: {
+            name: session.username || session.userId || '',
+            gender: 'unknown',
+          },
+        }
+      } else if (session.bot.getUser) {
+        const user = await session.bot.getUser(userId, session.guildId)
+        if (user.avatar) {
+          return {
+            url: user.avatar,
+            userInfo: { name: user.nick || user.name || '', gender: 'unknown' },
+          }
+        }
       }
+      throw new TypeError(
+        `User ${userId} in platform ${session.platform} has no avatar`,
+      )
     }
 
     const specificFunc = platformSpecific[session.platform]
