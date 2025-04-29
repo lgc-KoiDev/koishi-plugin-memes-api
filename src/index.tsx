@@ -1,3 +1,5 @@
+import type {} from '@koishijs/plugin-help'
+import type { Notifier } from '@koishijs/plugin-notifier'
 import { Context } from 'koishi'
 import { MemeAPI, MemeInfoResponse } from 'meme-generator-api'
 
@@ -5,9 +7,6 @@ import * as Commands from './commands'
 import { Config } from './config'
 import zhCNLocale from './locales/zh-CN.yml'
 import * as UserInfo from './user-info'
-
-import type {} from '@koishijs/plugin-help'
-import type { Notifier } from '@koishijs/plugin-notifier'
 
 export { Config }
 

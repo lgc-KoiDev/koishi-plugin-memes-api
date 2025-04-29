@@ -1,9 +1,8 @@
 import { Context, Session } from 'koishi'
+import type { OneBotBot } from 'koishi-plugin-adapter-onebot'
 import { UserInfo } from 'meme-generator-api'
 
 import { Config } from './config'
-
-import type { OneBotBot } from 'koishi-plugin-adapter-onebot'
 
 declare module './index' {
   interface MemeInternal {

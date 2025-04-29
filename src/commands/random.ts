@@ -1,4 +1,4 @@
-import { Context, h, Random } from 'koishi'
+import { Context, Random, h } from 'koishi'
 
 import { Config } from '../config'
 import { checkInRange, formatKeywords } from '../utils'

@@ -1,4 +1,4 @@
-import { Context, h, Time } from 'koishi'
+import { Context, Time, h } from 'koishi'
 import {
   MemeInfoResponse,
   MemeKeyWithProperties,
