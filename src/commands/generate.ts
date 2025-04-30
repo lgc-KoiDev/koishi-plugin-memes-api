@@ -49,7 +49,6 @@ export interface ImagesAndInfos {
 
 declare module '../index' {
   interface MemeInternal {
-    argTypeMap: Record<string, string>
     resolveArgs(session: Session, args: h[]): Promise<ResolvedArgs>
     resolveImagesAndInfos: (
       session: Session,
