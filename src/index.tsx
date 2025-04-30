@@ -1,7 +1,7 @@
 import type {} from '@koishijs/plugin-help'
 import type { Notifier } from '@koishijs/plugin-notifier'
 import { Context } from 'koishi'
-import { MemeAPI, MemeInfo } from 'meme-generator-rs-api'
+import { MemeAPI, MemeError, MemeInfo } from 'meme-generator-rs-api'
 
 import * as Commands from './commands'
 import { Config } from './config'
@@ -84,6 +84,33 @@ export async function apply(ctx: Context, config: Config) {
   })
   ctx.$.notifier?.update({ type: 'primary', content: '插件初始化中……' })
 
+  let version: string
+  try {
+    version = await ctx.$.api.getVersion()
+  } catch (e) {
+    ctx.logger.warn('Failed to fetch version, plugin will not work')
+    ctx.logger.warn(e)
+    const is404 = e instanceof MemeError && e.httpStatus === 404
+    ctx.$.notifier?.update({
+      type: 'danger',
+      content: (
+        <p>
+          获取插件版本失败，插件将不会工作！
+          <br />
+          {is404 ? (
+            <>
+              你或许还没有在使用 meme-generator-rs？请参考插件介绍迁移到
+              meme-generator-rs 哦。更多信息请查看日志。
+            </>
+          ) : (
+            <>请检查你的请求设置以及 meme-generator 的部署状态，更多信息请查看日志。</>
+          )}
+        </p>
+      ),
+    })
+    return
+  }
+
   try {
     await ctx.$.updateInfos()
   } catch (e) {
@@ -138,7 +165,13 @@ export async function apply(ctx: Context, config: Config) {
   const memeCount = Object.keys(ctx.$.infos).length
   ctx.$.notifier?.update({
     type: 'success',
-    content: <p>插件初始化完毕，共载入 {memeCount} 个表情。</p>,
+    content: (
+      <p>
+        插件初始化完毕，后端版本 {version}，共载入 {memeCount} 个表情。
+      </p>
+    ),
   })
-  ctx.logger.info(`Plugin initialized successfully, loaded ${memeCount} memes`)
+  ctx.logger.info(
+    `Plugin initialized successfully, backend version ${version}, loaded ${memeCount} memes`,
+  )
 }

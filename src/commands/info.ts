@@ -20,7 +20,7 @@ export async function apply(ctx: Context, config: Config) {
     } else {
       let searchRes: string[]
       try {
-        searchRes = await ctx.$.api.searchMemes(query, false)
+        searchRes = await ctx.$.api.searchMemes(query, true)
       } catch (e) {
         return ctx.$.handleError(session, e)
       }
@@ -43,23 +43,33 @@ export async function apply(ctx: Context, config: Config) {
       }
 
       if (!exactMatch) {
-        const sep = session.text('memes-api.info.multiple-tip-list-name-sep')
-        return listFlatJoin(
-          [
-            session.i18n('memes-api.info.multiple-tip-head'),
-            ...searchRes
-              .map((x) => ctx.$.infos[x])
-              .filter(Boolean)
-              .map((x) =>
-                session.i18n('memes-api.info.multiple-tip-list', [
-                  x.key,
-                  x.keywords.join(sep),
-                ]),
-              ),
-            session.i18n('memes-api.info.multiple-tip-tail'),
-          ],
-          ['\n'],
-        )
+        let img: Blob
+        try {
+          const keys = await ctx.$.api.getKeys()
+          const notExistKeys = keys.filter(
+            (x) => !searchRes.includes(x) || !(x in ctx.$.infos),
+          )
+          if (notExistKeys.length >= keys.length) {
+            return session?.text('memes-api.errors.no-such-meme', [query])
+          }
+
+          const imgId = await ctx.$.api.renderList({
+            meme_properties: {},
+            exclude_memes: notExistKeys,
+            add_category_icon: config.listAddCategoryIcon,
+            sort_by: config.listSortByRs,
+            sort_reverse: config.listSortReverse,
+            text_template: config.searchListTextTemplate,
+          })
+          img = await ctx.$.api.getImage(imgId.image_id)
+        } catch (e) {
+          return ctx.$.handleError(session, e)
+        }
+        return [
+          ...session.i18n('memes-api.info.multiple-tip-head'),
+          h.image(await img.arrayBuffer(), img.type),
+          ...session.i18n('memes-api.info.multiple-tip-tail'),
+        ]
       }
 
       const name = searchRes[0]

@@ -18,21 +18,22 @@ export async function apply(ctx: Context, config: Config) {
 
     const properties = {} as Record<string, MemeProperties>
     for (const [key, info] of Object.entries(ctx.$.infos)) {
-      const prop = {} as MemeProperties
       const compareTimeStr =
         config.listNewStrategy === NewStrategy.DateCreated
           ? info.date_created
           : info.date_modified
       const compareTimestamp = new Date(compareTimeStr).getTime()
       if (nowTimestamp - compareTimestamp <= timeDeltaMs) {
-        prop.new = true
+        ;(properties[key] ??= {}).new = true
       }
-      properties[key] = prop
     }
 
     let imgBlob: Blob
     try {
+      const keys = await ctx.$.api.getKeys()
+      const notExistKeys = keys.filter((x) => !(x in ctx.$.infos))
       const img = await ctx.$.api.renderList({
+        exclude_memes: notExistKeys,
         meme_properties: properties,
         sort_by: config.listSortByRs,
         text_template: config.listTextTemplate,

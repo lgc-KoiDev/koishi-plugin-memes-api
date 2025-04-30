@@ -1,4 +1,5 @@
 import { Context, Random, h } from 'koishi'
+import { MemeInfo, MemeOption } from 'meme-generator-rs-api'
 
 import { Config } from '../config'
 import { checkInRange, formatKeywords } from '../utils'
@@ -11,7 +12,7 @@ export async function apply(ctx: Context, config: Config) {
     subCmd.alias('随机表情')
   }
 
-  subCmd.action(async ({ session }, args) => {
+  subCmd.action(async ({ session, options }, args) => {
     if (!session) return
 
     if (config.randomCommandCountToGenerate) {
@@ -25,11 +26,51 @@ export async function apply(ctx: Context, config: Config) {
     } catch (e) {
       return ctx.$.handleResolveArgsError(session, e)
     }
-    const { imageInfos, texts } = resolvedArgs
+    const { imageInfos, texts, names } = resolvedArgs
 
     // enable auto use sender avatar and default texts when no image and text provided
     const autoUse = !imageInfos.length && !texts.length
     if (autoUse) imageInfos.push({ userId: session.userId })
+
+    const checkOptionExists = (info: MemeInfo) => {
+      if (!options) return true
+      const {
+        params: { options: memeOpts },
+      } = info
+      return !Object.keys(options).some(
+        (k) =>
+          // 在没找着时返回 true
+          !memeOpts.some((x) => x.name === k),
+      )
+    }
+
+    const castOpt = (opt: MemeOption) => {
+      if (!options || !(opt.name in options)) return undefined
+      const { type } = opt
+      const raw = (options as Record<string, any>)[opt.name]
+      switch (type) {
+        case 'boolean':
+          return ['true', '1'].includes(`${raw}`.toLowerCase())
+        case 'integer':
+          return parseInt(raw, 10)
+        case 'float':
+          return parseFloat(raw)
+        default:
+          return `${raw}`
+      }
+    }
+
+    const castOptions = (info: MemeInfo) => {
+      const newOpts: Record<string, any> = {}
+      if (!options) return {}
+      for (const k in options) {
+        const opt = info.params.options.find((x) => x.name === k)
+        if (opt) {
+          newOpts[k] = castOpt(opt)
+        }
+      }
+      return newOpts
+    }
 
     const suitableMemes = Object.values(ctx.$.infos).filter((info) => {
       const {
@@ -42,7 +83,8 @@ export async function apply(ctx: Context, config: Config) {
       } = info
       return (
         checkInRange(imageInfos.length, minImages, maxImages) &&
-        (autoUse || checkInRange(texts.length, minTexts, maxTexts))
+        (autoUse || checkInRange(texts.length, minTexts, maxTexts)) &&
+        checkOptionExists(info)
       )
     })
 
@@ -50,9 +92,9 @@ export async function apply(ctx: Context, config: Config) {
       return session.text('memes-api.random.no-suitable-meme')
     }
 
-    let inpImgs: ImagesAndInfos
+    let uploadInfo: ImagesAndInfos
     try {
-      inpImgs = await ctx.$.resolveImagesAndInfos(session, imageInfos)
+      uploadInfo = await ctx.$.resolveImagesAndInfos(session, imageInfos, names)
     } catch (e) {
       return ctx.$.handleResolveImagesAndInfosError(session, e)
     }
@@ -64,7 +106,8 @@ export async function apply(ctx: Context, config: Config) {
 
       let res: Blob
       try {
-        res = await ctx.$.uploadImgAndRenderMeme(session, info, texts, inpImgs, {})
+        const opts = castOptions(info)
+        res = await ctx.$.uploadImgAndRenderMeme(info, texts, uploadInfo, opts)
       } catch (e) {
         ctx.logger.warn(e)
         continue

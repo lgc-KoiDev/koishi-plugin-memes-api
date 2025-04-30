@@ -1,15 +1,22 @@
 commands:
   meme:
-    description: 制作各种沙雕表情
+    description: 制作各种沙雕表情包
   meme.list:
     description: 查看表情列表
   meme.info:
-    description: 查看表情详情
+    description: 查看表情详情（支持模糊搜索及按标签搜索）
   meme.generate:
-    description: 生成表情包，每个表情生成指令会注册为本指令的子指令
+    description: |-
+      生成表情包（每个表情生成指令会注册为本指令的子指令）
+    usage: |-
+      可使用 `自己`，`@自己`，`@某人`，`@用户ID` 格式的参数使用对应用户的头像作为图片参数输入。
+      可在使用指令的同时回复消息，被回复消息中的图片将会作为图片参数输入。
+      每张图片会附带一个图片名，使用用户头像作为输入时，会将用户昵称作为图片名，否则使用发送者昵称作为图片名。
+      可使用且可使用多次 `#名称` 格式的参数覆盖原位置上的图片名。
     examples: |-
       meme generate 5000兆 我去 洛天依
       meme generate rua -圆 @自己
+      meme generate steam消息 #一大块小饼干 "Visual Studio Code"
   meme.random:
     description: 生成随机表情
 
@@ -27,7 +34,7 @@ memes-api:
     option-number-too-big: 选项 {0} 数值过大，应小于 {1}。
 
     # 通用
-    no-such-meme: 表情 {0} 不存在！
+    no-such-meme: 未找到表情 {0}。
     image-number-mismatch: 输入图片数量不符，图片数量应为 {0}，但当前为 {1}。
     text-number-mismatch: 输入文字数量不符，文字数量应为 {0}，但当前为 {1}。
 
@@ -55,8 +62,6 @@ memes-api:
 
   info:
     multiple-tip-head: 搜索到多个可能结果：
-    multiple-tip-list: '- {0}（{1}）'
-    multiple-tip-list-name-sep: ' / '
     multiple-tip-tail: 如有您想要的结果，请修改参数重新查询。
     key: 表情名：{0}
     keywords: 关键词：{0}
@@ -74,7 +79,7 @@ memes-api:
       {0}
 
   random:
-    no-suitable-meme: 找不到符合参数数量的表情。
+    no-suitable-meme: 找不到符合当前已提供参数信息的表情。
     info: 关键词：{0}
 
 _config:
@@ -106,8 +111,9 @@ _config:
         - 创建时间
         - 修改时间
     listTextTemplate: |-
-      表情显示文字模板。  
+      表情列表显示文字模板。  
       可用变量：`{index}`（序号）、`{key}`（表情名）、`{keywords}`（关键词）、`{shortcuts}`（快捷指令）、`{tags}`（标签）
+    searchListTextTemplate: 表情信息模糊搜索出现多个结果时显示的文字模板。可用变量同上。
     listAddCategoryIcon: 是否添加图标以表示表情类型，即“图片表情包”和“文字表情包”。
 
   - $desc: 其他指令配置

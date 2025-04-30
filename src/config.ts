@@ -23,6 +23,7 @@ export interface ListConfig {
   listNewTimeDelta: number
   listNewStrategy: NewStrategy
   listTextTemplate: string
+  searchListTextTemplate: string
   listAddCategoryIcon: boolean
 }
 
@@ -84,6 +85,7 @@ export const ListConfig: Schema<ListConfig> = Schema.object({
     NewStrategy.DateCreated,
   ),
   listTextTemplate: Schema.string().default('{keywords}'),
+  searchListTextTemplate: Schema.string().default('{key}（{keywords}）'),
   listAddCategoryIcon: Schema.boolean().default(true),
 })
 

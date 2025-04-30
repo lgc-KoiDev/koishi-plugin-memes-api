@@ -19,7 +19,7 @@ export interface ResolvedShortcutInfo {
 
 export interface SessionInternal {
   inGenerateSubCommand?: boolean
-  shortcut?: ResolvedShortcutInfo
+  shortcut?: boolean
 }
 
 declare module 'koishi' {
@@ -39,10 +39,12 @@ export type ImageFetchInfo = { src: string } | { userId: string }
 export interface ResolvedArgs {
   imageInfos: ImageFetchInfo[]
   texts: string[]
+  names: string[]
 }
 export interface ImagesAndInfos {
   images: Blob[]
-  userInfos: UserInfo[]
+  names: string[]
+  gender: UserInfoGender
 }
 
 declare module '../index' {
@@ -52,13 +54,13 @@ declare module '../index' {
     resolveImagesAndInfos: (
       session: Session,
       imageInfos: ImageFetchInfo[],
+      existingNames?: string[],
     ) => Promise<ImagesAndInfos>
     checkAndCountToGenerate(session: Session): Promise<h[] | undefined>
     uploadImages(images: Blob[]): Promise<string[]>
     uploadImagesAndProcess(
-      session: Session,
       meme: MemeInfo,
-      infos: ImagesAndInfos,
+      uploadInfo: ImagesAndInfos,
       options?: Record<string, any>,
     ): Promise<MemeImage[]>
     normalizeOptionType(type: MemeOptionType): string
@@ -68,10 +70,9 @@ declare module '../index' {
       info: MemeInfo,
     ): Promise<h.Fragment | undefined>
     uploadImgAndRenderMeme(
-      session: Session,
       meme: MemeInfo,
       texts: string[],
-      images: ImagesAndInfos,
+      uploadInfo: ImagesAndInfos,
       options: Record<string, any>,
     ): Promise<Blob>
     reRegisterGenerateCommands: () => Promise<void>
@@ -89,6 +90,7 @@ export async function apply(ctx: Context, config: Config) {
   ctx.$.resolveArgs = async (session, args) => {
     const imageInfos: ImageFetchInfo[] = []
     const texts: string[] = []
+    const names: string[] = []
 
     // append images from quote
     if (session.quote?.elements) {
@@ -117,6 +119,11 @@ export async function apply(ctx: Context, config: Config) {
         if (v.startsWith('@')) {
           const userId = v.slice(1)
           imageInfos.push({ userId })
+          return false
+        }
+        if (v.startsWith('#')) {
+          const name = v.slice(1)
+          names.push(name)
           return false
         }
         return true
@@ -154,10 +161,10 @@ export async function apply(ctx: Context, config: Config) {
     for (const child of args) visit(child)
     resolveBuffer()
 
-    return { imageInfos, texts }
+    return { imageInfos, texts, names }
   }
 
-  ctx.$.resolveImagesAndInfos = async (session, imageInfos) => {
+  ctx.$.resolveImagesAndInfos = async (session, imageInfos, existingNames) => {
     const imageInfoKeys = imageInfos.map((v) => JSON.stringify(v))
 
     const imageMap: Record<string, Blob> = {}
@@ -185,7 +192,14 @@ export async function apply(ctx: Context, config: Config) {
 
     const images = imageInfoKeys.map((key) => imageMap[key])
     const userInfos = imageInfoKeys.map((key) => userInfoMap[key])
-    return { images, userInfos }
+    const names = [
+      ...(existingNames ?? []),
+      ...userInfos
+        .slice(existingNames?.length ?? 0)
+        .map((x) => x.name ?? session.author.nick ?? session.username),
+    ]
+    const gender = userInfos.find((x) => x.gender)?.gender ?? 'unknown'
+    return { images, names, gender }
   }
 
   ctx.$.checkAndCountToGenerate = async (session) => {
@@ -213,33 +227,16 @@ export async function apply(ctx: Context, config: Config) {
     )
   }
 
-  ctx.$.uploadImagesAndProcess = async (session, meme, infos, options) => {
-    const { images, userInfos } = infos
-
-    const overrideNames = session.memesApi?.shortcut?.names
-
+  ctx.$.uploadImagesAndProcess = async (meme, { images, names, gender }, options) => {
     const imageIds = await ctx.$.uploadImages(images)
-    const imagesReq = imageIds.map(
-      (id, k) =>
-        ({
-          id,
-          name:
-            (overrideNames ? overrideNames[k] : undefined) ??
-            userInfos[k].name ??
-            session.author.name ??
-            session.author.id,
-        }) satisfies MemeImage,
-    )
-
+    const imagesReq = imageIds.map((id, k) => ({ id, name: names[k] }))
     if (
       options &&
       meme.params.options.some((v) => v.name === 'gender') &&
       !('gender' in options)
     ) {
-      const firstUserInfo = userInfos.find((v) => v.gender)
-      options.gender = (firstUserInfo?.gender ?? 'unknown') satisfies UserInfoGender
+      options.gender = gender
     }
-
     return imagesReq
   }
 
@@ -277,10 +274,10 @@ export async function apply(ctx: Context, config: Config) {
     }
   }
 
-  ctx.$.uploadImgAndRenderMeme = async (session, meme, texts, images, options) => {
+  ctx.$.uploadImgAndRenderMeme = async (meme, texts, uploadInfo, options) => {
     const imgResp = await ctx.$.api.renderMeme(meme.key, {
       texts,
-      images: await ctx.$.uploadImagesAndProcess(session, meme, images, options),
+      images: await ctx.$.uploadImagesAndProcess(meme, uploadInfo, options),
       options,
     })
     return await ctx.$.api.getImage(imgResp.image_id)
@@ -305,13 +302,13 @@ export async function apply(ctx: Context, config: Config) {
     return cmd
   }
 
-  const registerGenerateCmd = (info: MemeInfo) => {
-    const { key, keywords } = info
+  const registerGenerateCmd = (meme: MemeInfo) => {
+    const { key, keywords } = meme
 
     const subCmd: Command<never, never, [h[], ...string[]], any> =
       cmdGenerate.subcommand(`.${key} [args:el]`, { strictOptions: true, hidden: true })
     for (const kw of keywords) subCmd.alias(`.${kw}`)
-    registerGenerateOptions(subCmd, info.params.options)
+    registerGenerateOptions(subCmd, meme.params.options)
 
     return subCmd.action(async ({ session, options }, args) => {
       if (!session) return
@@ -322,7 +319,7 @@ export async function apply(ctx: Context, config: Config) {
       }
 
       if (options) {
-        const err = await ctx.$.checkOptions(session, options, info)
+        const err = await ctx.$.checkOptions(session, options, meme)
         if (err) return err
       }
 
@@ -333,13 +330,7 @@ export async function apply(ctx: Context, config: Config) {
         return ctx.$.handleResolveArgsError(session, e)
       }
 
-      if (session.memesApi?.shortcut) {
-        const s = session.memesApi.shortcut
-        resolvedArgs.texts = s.texts ?? []
-        Object.assign(options, s.options)
-      }
-
-      const { imageInfos, texts } = resolvedArgs
+      const { imageInfos, texts, names } = resolvedArgs
       const {
         params: {
           min_images: minImages,
@@ -348,7 +339,7 @@ export async function apply(ctx: Context, config: Config) {
           max_texts: maxTexts,
           default_texts: defaultTexts,
         },
-      } = info
+      } = meme
 
       const autoUseAvatar = !!(
         (config.autoUseSenderAvatarWhenOnlyOne &&
@@ -382,16 +373,16 @@ export async function apply(ctx: Context, config: Config) {
             ])
       }
 
-      let inpImgs: ImagesAndInfos
+      let uploadInfo: ImagesAndInfos
       try {
-        inpImgs = await ctx.$.resolveImagesAndInfos(session, imageInfos)
+        uploadInfo = await ctx.$.resolveImagesAndInfos(session, imageInfos, names)
       } catch (e) {
         return ctx.$.handleResolveImagesAndInfosError(session, e)
       }
 
       let res: Blob
       try {
-        res = await ctx.$.uploadImgAndRenderMeme(session, info, texts, inpImgs, options)
+        res = await ctx.$.uploadImgAndRenderMeme(meme, texts, uploadInfo, options)
       } catch (e) {
         return ctx.$.handleRenderError(session, e)
       }

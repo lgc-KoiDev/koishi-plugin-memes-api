@@ -1,9 +1,8 @@
-import { Context, Session, escapeRegExp } from 'koishi'
+import { Context, escapeRegExp } from 'koishi'
 import { MemeShortcut } from 'meme-generator-rs-api'
 
 import { Config } from '../config'
-import { replaceBracketVar, transformRegex } from '../utils'
-import { ResolvedShortcutInfo as ResolvedShortcutInput } from './generate'
+import { escapeArgs, replaceBracketVar, transformRegex } from '../utils'
 
 declare module '../index' {
   interface MemeInternal {
@@ -52,22 +51,23 @@ export async function apply(ctx: Context, config: Config) {
     shortcuts.push(...tmpShortcuts)
   }
 
-  const resolveInput = (
-    session: Session,
-    shortcut: ShortcutInfo,
-    res: RegExpExecArray,
-  ): ResolvedShortcutInput => {
-    return {
-      rawMessage: session.elements,
-      names: shortcut.names?.map((x) => replaceBracketVar(x, res)),
-      texts: shortcut.texts?.map((x) => replaceBracketVar(x, res)),
-      options: Object.fromEntries(
-        Object.entries(shortcut.options ?? {}).map(([key, value]) => [
-          key,
-          replaceBracketVar(value, res),
-        ]),
-      ),
+  const resolveArgs = (shortcut: ShortcutInfo, res: RegExpExecArray): string => {
+    const args = []
+    if (shortcut.names) {
+      args.push(...shortcut.names?.map((x) => `#${replaceBracketVar(x, res)}`))
     }
+    if (shortcut.texts) {
+      args.push(...shortcut.texts?.map((x) => replaceBracketVar(x, res)))
+    }
+    const options = shortcut.options
+      ? [
+          ...Object.entries(shortcut.options).map(
+            ([key, value]) =>
+              `${key.length > 1 ? '--' : '-'}${key} ${escapeArgs([value])}`,
+          ),
+        ].join(' ')
+      : ''
+    return [options, args.join(' ')].filter(Boolean).join(' ')
   }
 
   ctx.middleware(async (session, next) => {
@@ -91,8 +91,12 @@ export async function apply(ctx: Context, config: Config) {
       const { name, pattern } = shortcut
       const res = new RegExp(`^${cmdPrefixRegex}${pattern}`).exec(content)
       if (res) {
-        ;(session.memesApi ??= {}).shortcut = resolveInput(session, shortcut, res)
-        return session.execute(`meme.generate.${name}`)
+        ;(session.memesApi ??= {}).shortcut = true
+        return session.execute(
+          `meme.generate.${name}` +
+            ` ${resolveArgs(shortcut, res)}` +
+            ` ${content.slice(res.index + res[0].length)}`,
+        )
       }
     }
 
