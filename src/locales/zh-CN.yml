@@ -15,14 +15,31 @@ commands:
 
 memes-api:
   errors:
-    no-such-meme: 表情 {0} 不存在！
+    # 插件
     syntax-error:
       unexpected-char: 参数语法错误，遇到意外字符 {char} ( 索引 {index} )，如果是左引号请考虑使用反斜杠转义。
       unterminated-quote: 参数语法错误，遇到未闭合引号 {char} ( 索引 {index} )。
-    image-number-mismatch: 输入图片数量不符，图片数量应为 {0}，但当前为 {1}。
-    text-number-mismatch: 输入文字数量不符，文字数量应为 {0}，但当前为 {1}。
     can-not-get-avatar: 无法获取平台 {platform} 中 ID 为 {userId} 的用户的头像信息。
     download-image-failed: 下载图片失败。
+    option-type-mismatch:
+      number: 选项 {0} 类型不符，应为数值。
+    option-number-too-small: 选项 {0} 数值过小，应大于 {1}。
+    option-number-too-big: 选项 {0} 数值过大，应小于 {1}。
+
+    # 通用
+    no-such-meme: 表情 {0} 不存在！
+    image-number-mismatch: 输入图片数量不符，图片数量应为 {0}，但当前为 {1}。
+    text-number-mismatch: 输入文字数量不符，文字数量应为 {0}，但当前为 {1}。
+
+    # 仅 API 返回
+    image-decode: 图片解码失败：{0}。
+    image-encode: 图片编码失败：{0}。
+    image-asset-missing: 缺少图片资源：{0}。
+    deserialize: 表情选项解析出错：{0}。
+    text-over-length: 输入文字过长。
+    meme-feedback: '{0}。'
+
+    other-error: 发生其他错误：({0}) {1}。
 
   list:
     tip: |-
@@ -37,13 +54,18 @@ memes-api:
       {0}
 
   info:
+    multiple-tip-head: 搜索到多个可能结果：
+    multiple-tip-list: '- {0}（{1}）'
+    multiple-tip-list-name-sep: ' / '
+    multiple-tip-tail: 如有您想要的结果，请修改参数重新查询。
     key: 表情名：{0}
     keywords: 关键词：{0}
     shortcuts: 快捷指令：{0}
     image-num: 需要图片数目：{0}
     text-num: 需要文字数目：{0}
     default-texts: 默认文字：{0}
-    option: ' * {0} - {1}'
+    option: ' * {0}{1} - {2}'
+    option-sep: ' | '
     options: |-
       可选参数：
       {0}

@@ -33,7 +33,7 @@ export async function apply(ctx: Context, config: Config) {
 
     const suitableMemes = Object.values(ctx.$.infos).filter((info) => {
       const {
-        params_type: {
+        params: {
           min_images: minImages,
           max_images: maxImages,
           min_texts: minTexts,
@@ -50,38 +50,33 @@ export async function apply(ctx: Context, config: Config) {
       return session.text('memes-api.random.no-suitable-meme')
     }
 
-    let imagesAndInfos: ImagesAndInfos
+    let inpImgs: ImagesAndInfos
     try {
-      imagesAndInfos = await ctx.$.resolveImagesAndInfos(session, imageInfos)
+      inpImgs = await ctx.$.resolveImagesAndInfos(session, imageInfos)
     } catch (e) {
       return ctx.$.handleResolveImagesAndInfosError(session, e)
     }
-    const { images, userInfos } = imagesAndInfos
 
     while (suitableMemes.length) {
       const index = Random.int(0, suitableMemes.length)
       const info = suitableMemes[index]
       suitableMemes.splice(index, 1)
 
-      let img: Blob
+      let res: Blob
       try {
-        img = await ctx.$.api.renderMeme(info.key, {
-          texts: autoUse ? info.params_type.default_texts : texts,
-          images,
-          args: { user_infos: userInfos },
-        })
+        res = await ctx.$.uploadImgAndRenderMeme(session, info, texts, inpImgs, {})
       } catch (e) {
         ctx.logger.warn(e)
         continue
       }
 
-      const elems = [h.image(await img.arrayBuffer(), img.type)]
+      const el = [h.image(await res.arrayBuffer(), res.type)]
       if (config.randomMemeShowInfo) {
-        elems.unshift(
+        el.unshift(
           ...session.i18n('memes-api.random.info', [formatKeywords(info.keywords)]),
         )
       }
-      return elems
+      return el
     }
 
     return session.text('memes-api.random.no-suitable-meme')

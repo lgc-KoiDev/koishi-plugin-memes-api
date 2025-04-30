@@ -1,7 +1,9 @@
-import { Context, escapeRegExp, h } from 'koishi'
+import { Context, Session, escapeRegExp } from 'koishi'
+import { MemeShortcut } from 'meme-generator-rs-api'
 
 import { Config } from '../config'
-import { escapeArgs } from '../utils'
+import { replaceBracketVar, transformRegex } from '../utils'
+import { ResolvedShortcutInfo as ResolvedShortcutInput } from './generate'
 
 declare module '../index' {
   interface MemeInternal {
@@ -9,12 +11,11 @@ declare module '../index' {
   }
 }
 
-interface ShortcutInfo {
+export interface ShortcutInfo extends Partial<MemeShortcut> {
   name: string
-  regex: string
-  args: string[]
+  pattern: string
 }
-interface KeywordInfo {
+export interface KeywordInfo {
   name: string
   keyword: string
 }
@@ -33,12 +34,8 @@ export async function apply(ctx: Context, config: Config) {
       info.keywords.forEach((keyword) => {
         tmpKeywords.push({ name, keyword })
       })
-      info.shortcuts.forEach(({ key, args }) => {
-        tmpRegExps.push({
-          name,
-          regex: transformRegex(key.replace(/^\^/, '').replace(/\$$/, '')),
-          args: args ?? [],
-        })
+      info.shortcuts.forEach((s) => {
+        tmpRegExps.push({ name, ...s, pattern: transformRegex(s.pattern) })
       })
     }
 
@@ -46,7 +43,7 @@ export async function apply(ctx: Context, config: Config) {
       ...tmpKeywords
         .sort((a, b) => b.keyword.length - a.keyword.length)
         .map(({ name, keyword }) => {
-          return { name, regex: escapeRegExp(keyword), args: [] }
+          return { name, pattern: escapeRegExp(keyword) }
         }),
       ...tmpRegExps,
     ]
@@ -55,50 +52,22 @@ export async function apply(ctx: Context, config: Config) {
     shortcuts.push(...tmpShortcuts)
   }
 
-  const extractContentPlaintext = (content: string) => {
-    let elems: h[]
-    try {
-      elems = h.parse(content)
-    } catch (e) {
-      return content
+  const resolveInput = (
+    session: Session,
+    shortcut: ShortcutInfo,
+    res: RegExpExecArray,
+  ): ResolvedShortcutInput => {
+    return {
+      rawMessage: session.elements,
+      names: shortcut.names?.map((x) => replaceBracketVar(x, res)),
+      texts: shortcut.texts?.map((x) => replaceBracketVar(x, res)),
+      options: Object.fromEntries(
+        Object.entries(shortcut.options ?? {}).map(([key, value]) => [
+          key,
+          replaceBracketVar(value, res),
+        ]),
+      ),
     }
-
-    const textBuffer: string[] = []
-    const visit = (e: h) => {
-      if (e.children.length) {
-        for (const child of e.children) visit(child)
-      }
-      if (e.type === 'text') {
-        const t = e.attrs.content
-        if (t) textBuffer.push(t)
-      }
-    }
-    for (const child of elems) visit(child)
-    return textBuffer.join('')
-  }
-
-  const resolveArgs = (args: string[], res: RegExpExecArray) => {
-    return args.map((v) => {
-      // double bracket should escape it
-      return v.replace(/(?<l>[^\{])?\{(?<v>.+?)\}(?<r>[^\}])?/g, (...args) => {
-        type Groups = Record<'l' | 'r', string | undefined> & Record<'v', string>
-        const { l, v, r } = args[args.length - 1] as Groups
-        const index = parseInt(v)
-        let resolved: string
-        if (!isNaN(index)) {
-          resolved = res[index] ?? v
-        } else if (res.groups && v in res.groups) {
-          resolved = res.groups[v]
-        } else {
-          resolved = v
-        }
-        return `${l ?? ''}${extractContentPlaintext(resolved)}${r ?? ''}`
-      })
-    })
-  }
-
-  const transformRegex = (pythonRegex: string): string => {
-    return pythonRegex.replace(/\(\?P<(?<n>\w+?)>/g, '(?<$<n>>') // named groups
   }
 
   ctx.middleware(async (session, next) => {
@@ -118,15 +87,13 @@ export async function apply(ctx: Context, config: Config) {
       return ''
     })()
 
-    for (const { name, regex, args } of shortcuts) {
-      const res = new RegExp(`^${cmdPrefixRegex}${regex}`).exec(content)
-      if (!res) continue
-
-      const argTxt =
-        `${escapeArgs(resolveArgs(args, res))}` +
-        ` ${content.slice(res.index + res[0].length)}`
-      session.inShortcut = true
-      return session.execute(`meme.generate.${name} ${argTxt}`)
+    for (const shortcut of shortcuts) {
+      const { name, pattern } = shortcut
+      const res = new RegExp(`^${cmdPrefixRegex}${pattern}`).exec(content)
+      if (res) {
+        ;(session.memesApi ??= {}).shortcut = resolveInput(session, shortcut, res)
+        return session.execute(`meme.generate.${name}`)
+      }
     }
 
     return next()

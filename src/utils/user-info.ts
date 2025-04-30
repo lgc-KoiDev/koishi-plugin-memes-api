@@ -1,10 +1,9 @@
 import { Context, Session } from 'koishi'
 import type { OneBotBot } from 'koishi-plugin-adapter-onebot'
-import { UserInfo } from 'meme-generator-api'
 
-import { Config } from './config'
+import { Config } from '../config'
 
-declare module './index' {
+declare module '../index' {
   interface MemeInternal {
     getInfoFromID(
       session: Session,
@@ -12,6 +11,12 @@ declare module './index' {
       forceFallback?: boolean,
     ): Promise<ImageAndUserInfo>
   }
+}
+
+export type UserInfoGender = 'male' | 'female' | 'unknown'
+export interface UserInfo {
+  name?: string
+  gender?: UserInfoGender
 }
 
 export interface ImageAndUserInfo {

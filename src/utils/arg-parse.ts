@@ -1,5 +1,3 @@
-import type { FileResponse } from '@cordisjs/plugin-http'
-
 export class ArgSyntaxError extends SyntaxError {
   constructor(
     public readonly type: ArgSyntaxError.Type,
@@ -126,30 +124,4 @@ export function escapeArgs(args: string[], extraShouldQuote?: string[]): string 
       return `"${arg}"`
     })
     .join(' ')
-}
-
-export function checkInRange(value: number, min: number, max: number): boolean {
-  return value >= min && value <= max
-}
-
-export function constructBlobFromFileResp(resp: FileResponse): Blob {
-  return new Blob([resp.data], { type: resp.type })
-}
-
-export function formatRange(min: number, max: number): string {
-  return min === max ? min.toString() : `${min} ~ ${max}`
-}
-
-export function formatKeywords(keywords: string[]): string {
-  return keywords.map((v) => `“${v}”`).join('、')
-}
-
-export function listJoin<T, V>(list: T[], splitter: V): (T | V)[] {
-  const newList: (T | V)[] = []
-  for (const item of list) {
-    newList.push(item)
-    newList.push(splitter)
-  }
-  newList.pop()
-  return newList
 }

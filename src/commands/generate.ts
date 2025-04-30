@@ -1,27 +1,30 @@
-import { Command, Context, Session, h, paramCase } from 'koishi'
-import {
-  ActType,
-  MemeArgsResponse,
-  MemeError,
-  MemeInfoResponse,
-  ParserOption,
-  UserInfo,
-} from 'meme-generator-api'
+import { Argv, Command, Context, Session, h } from 'koishi'
+import { MemeImage, MemeInfo, MemeOption, MemeOptionType } from 'meme-generator-rs-api'
 
 import { Config } from '../config'
-import { GetAvatarFailedError } from '../user-info'
 import {
-  ArgSyntaxError,
   checkInRange,
   constructBlobFromFileResp,
   formatRange,
   splitArgString,
 } from '../utils'
+import { UserInfo, UserInfoGender } from '../utils/user-info'
+
+export interface ResolvedShortcutInfo {
+  rawMessage: h[]
+  names?: string[]
+  texts?: string[]
+  options?: Record<string, any>
+}
+
+export interface SessionInternal {
+  inGenerateSubCommand?: boolean
+  shortcut?: ResolvedShortcutInfo
+}
 
 declare module 'koishi' {
   interface Session {
-    inGenerateSubCommand?: boolean
-    inShortcut?: boolean
+    memesApi: SessionInternal
   }
 }
 
@@ -45,124 +48,43 @@ export interface ImagesAndInfos {
 declare module '../index' {
   interface MemeInternal {
     argTypeMap: Record<string, string>
-    transformToKoishiOptions: (args: MemeArgsResponse) => OptionInfo[]
-    applyOptionEffects: (
-      session: Session,
-      options: Record<string, any>,
-      info: MemeInfoResponse,
-    ) => Promise<Record<string, any>>
     resolveArgs(session: Session, args: h[]): Promise<ResolvedArgs>
-    reRegisterGenerateCommands: () => Promise<void>
     resolveImagesAndInfos: (
       session: Session,
       imageInfos: ImageFetchInfo[],
     ) => Promise<ImagesAndInfos>
-    handleResolveArgsError: (session: Session, e: any) => h.Fragment | undefined
-    handleResolveImagesAndInfosError: (
-      session: Session,
-      e: any,
-    ) => h.Fragment | undefined
-    handleRenderError: (session: Session, e: any) => h.Fragment | undefined
     checkAndCountToGenerate(session: Session): Promise<h[] | undefined>
+    uploadImages(images: Blob[]): Promise<string[]>
+    uploadImagesAndProcess(
+      session: Session,
+      meme: MemeInfo,
+      infos: ImagesAndInfos,
+      options?: Record<string, any>,
+    ): Promise<MemeImage[]>
+    normalizeOptionType(type: MemeOptionType): string
+    checkOptions(
+      session: Session,
+      options: Record<string, any>,
+      info: MemeInfo,
+    ): Promise<h.Fragment | undefined>
+    uploadImgAndRenderMeme(
+      session: Session,
+      meme: MemeInfo,
+      texts: string[],
+      images: ImagesAndInfos,
+      options: Record<string, any>,
+    ): Promise<Blob>
+    reRegisterGenerateCommands: () => Promise<void>
   }
 }
 
 export async function apply(ctx: Context, config: Config) {
   const cmdGenerate = ctx.$.cmd.subcommand('.generate').action(async ({ session }) => {
-    if (session?.inGenerateSubCommand) return
+    if (session?.memesApi.inGenerateSubCommand) return
     return session?.execute('help meme.generate')
   })
 
   const generateSubCommands: Command[] = []
-
-  ctx.$.argTypeMap = {
-    str: 'string',
-    int: 'integer',
-    float: 'number',
-    bool: 'boolean',
-  }
-
-  ctx.$.transformToKoishiOptions = (args: MemeArgsResponse) => {
-    const options: OptionInfo[] = []
-
-    for (const arg of args.parser_options) {
-      const trimmedNames = arg.names.map((v) => v.replace(/^-+/, ''))
-      const name =
-        trimmedNames.filter((v) => v in args.args_model.properties)[0] ??
-        trimmedNames.filter((v) => /^[a-zA-Z0-9-_]+$/.test(v)).sort((v) => -v.length)[0]
-      const aliases = trimmedNames.filter((v) => v !== name)
-
-      // no args treated as boolean option
-      if (!arg.args) {
-        options.push({
-          names: [name, ...aliases],
-          argName: name,
-          type: 'boolean',
-          description: arg.help_text ?? '',
-        })
-        continue
-      }
-
-      const transformArgType = (value: string): string => {
-        if (value in ctx.$.argTypeMap) return ctx.$.argTypeMap[value]
-        ctx.logger.warn(`Unsupported arg type ${value} in arg ${name}`)
-        return 'string'
-      }
-      const withSuffix = arg.args && arg.args.length > 1 // consider an arg with multiple values, koishi doesn't support this
-      const aliasesSuffixed = withSuffix ? aliases.map((v) => `${v}-${name}`) : aliases
-      for (const argInfo of arg.args) {
-        const argName = argInfo?.name ?? name
-        const argType = argInfo ? transformArgType(argInfo.value) : 'boolean'
-        const nameSuffixed = withSuffix ? `${name}-${paramCase(argName)}` : name
-        options.push({
-          names: [nameSuffixed, ...aliasesSuffixed],
-          argName,
-          type: argType,
-          description: arg.help_text ?? '',
-        })
-      }
-    }
-
-    return options
-  }
-
-  ctx.$.applyOptionEffects = async (session, options, info) => {
-    const parserOptions = info.params_type.args_type?.parser_options
-    if (!parserOptions) return options
-
-    options = { ...options }
-
-    const executeAction = (optName: string, opt: ParserOption) => {
-      const { action, dest } = opt
-      if (!action || !dest) return
-
-      const { type, value } = action
-      switch (type) {
-        case ActType.STORE: {
-          options[dest] = value
-          break
-        }
-        case ActType.APPEND: {
-          options[dest] = (options[dest] ?? []).concat(value)
-          break
-        }
-        case ActType.COUNT: {
-          options[dest] = (options[dest] ?? 0) + 1
-          break
-        }
-      }
-      delete options[optName]
-    }
-
-    for (const opt of parserOptions) {
-      const optName = opt.names
-        .map((v) => v.replace(/^-+/, ''))
-        .filter((v) => v in options)[0]
-      if (!optName || options[optName] !== true) continue
-      executeAction(optName, opt)
-    }
-    return options
-  }
 
   ctx.$.resolveArgs = async (session, args) => {
     const imageInfos: ImageFetchInfo[] = []
@@ -266,65 +188,129 @@ export async function apply(ctx: Context, config: Config) {
     return { images, userInfos }
   }
 
-  ctx.$.handleResolveArgsError = (session, e): h.Fragment | undefined => {
-    if (!(e instanceof ArgSyntaxError)) throw e
-    ctx.logger.warn(e.message)
-    return config.silentShortcut && session.inShortcut
-      ? undefined
-      : session.text(ArgSyntaxError.getI18NKey(e), e)
-  }
-
-  ctx.$.handleResolveImagesAndInfosError = (session, e): h.Fragment | undefined => {
-    if (e instanceof GetAvatarFailedError) {
-      return config.silentShortcut && session.inShortcut && config.moreSilent
-        ? undefined
-        : session.text('memes-api.errors.can-not-get-avatar', e)
-    }
-    ctx.logger.warn(e)
-    return config.silentShortcut && session.inShortcut && config.moreSilent
-      ? undefined
-      : session.text('memes-api.errors.download-image-failed')
-  }
-
-  ctx.$.handleRenderError = (session, e): h.Fragment | undefined => {
-    if (!(e instanceof MemeError) || !e.type) throw e
-    ctx.logger.warn(e)
-    return config.silentShortcut &&
-      session.inShortcut &&
-      (config.moreSilent || // or arg error
-        (e.response.status <= 540 && e.response.status > 560))
-      ? undefined
-      : e.memeMessage
-  }
-
   ctx.$.checkAndCountToGenerate = async (session) => {
-    session.inGenerateSubCommand = true
+    ;(session.memesApi ??= {}).inGenerateSubCommand = true
     const fatherRet = await session.execute('meme.generate', true)
     // father command should return empty array if inGenerateSubCommand is true
     return fatherRet.length ? fatherRet : undefined
   }
 
-  const registerGenerateOptions = (cmd: Command, info: MemeInfoResponse) => {
-    const {
-      params_type: { args_type: args },
-    } = info
-    if (!args) return cmd
+  ctx.$.uploadImages = async (images) => {
+    const pLimit = (await import('p-limit')).default
+    const sem = pLimit(config.requestConcurrency)
+    return Promise.all(
+      images.map((x) =>
+        x
+          .arrayBuffer()
+          .then((x) => ({
+            type: 'data' as const,
+            data: Buffer.from(x).toString('base64'),
+          }))
+          .then((x) => sem(ctx.$.api.uploadImage, x))
+          .then((x) => x.image_id),
+      ),
+    )
+  }
 
-    for (const opt of ctx.$.transformToKoishiOptions(args)) {
-      const { names, argName, type, description } = opt
-      const [name, ...aliases] = names
-      cmd.option(name, `[${argName}:${type}] ${description}`, { aliases })
+  ctx.$.uploadImagesAndProcess = async (session, meme, infos, options) => {
+    const { images, userInfos } = infos
+
+    const overrideNames = session.memesApi?.shortcut?.names
+
+    const imageIds = await ctx.$.uploadImages(images)
+    const imagesReq = imageIds.map(
+      (id, k) =>
+        ({
+          id,
+          name:
+            (overrideNames ? overrideNames[k] : undefined) ??
+            userInfos[k].name ??
+            session.author.name ??
+            session.author.id,
+        }) satisfies MemeImage,
+    )
+
+    if (
+      options &&
+      meme.params.options.some((v) => v.name === 'gender') &&
+      !('gender' in options)
+    ) {
+      const firstUserInfo = userInfos.find((v) => v.gender)
+      options.gender = (firstUserInfo?.gender ?? 'unknown') satisfies UserInfoGender
+    }
+
+    return imagesReq
+  }
+
+  ctx.$.normalizeOptionType = (type) => {
+    if (type === 'float') return 'number'
+    return type
+  }
+
+  ctx.$.checkOptions = async (session, options, info) => {
+    const {
+      params: { options: memeOpts },
+    } = info
+    for (const opt of memeOpts) {
+      if (!(opt.name in options)) continue
+      if (opt.minimum || opt.maximum) {
+        const curr = parseFloat(options[opt.name])
+        if (isNaN(curr)) {
+          return session.text('memes-api.errors.option-type-mismatch.number', [
+            opt.name,
+          ])
+        }
+        if (opt.minimum && curr < opt.minimum) {
+          return session.text('memes-api.errors.option-number-too-small', [
+            opt.name,
+            opt.minimum,
+          ])
+        }
+        if (opt.maximum && curr > opt.maximum) {
+          return session.text('memes-api.errors.option-number-too-big', [
+            opt.name,
+            opt.maximum,
+          ])
+        }
+      }
+    }
+  }
+
+  ctx.$.uploadImgAndRenderMeme = async (session, meme, texts, images, options) => {
+    const imgResp = await ctx.$.api.renderMeme(meme.key, {
+      texts,
+      images: await ctx.$.uploadImagesAndProcess(session, meme, images, options),
+      options,
+    })
+    return await ctx.$.api.getImage(imgResp.image_id)
+  }
+
+  const registerGenerateOptions = (cmd: Command, options: MemeOption[]) => {
+    for (const opt of options) {
+      const {
+        type,
+        name,
+        description,
+        parser_flags: { short_aliases: sa, long_aliases: la },
+        choices,
+      } = opt
+      const kType = ctx.$.normalizeOptionType(type)
+      const cfg = { aliases: [...sa, ...la] } as Argv.OptionConfig
+      if (choices && choices.length) {
+        cfg.type = choices
+      }
+      cmd.option(name, `[${name}:${kType}] ${description}`, cfg)
     }
     return cmd
   }
 
-  const registerGenerateCmd = (info: MemeInfoResponse) => {
+  const registerGenerateCmd = (info: MemeInfo) => {
     const { key, keywords } = info
 
     const subCmd: Command<never, never, [h[], ...string[]], any> =
       cmdGenerate.subcommand(`.${key} [args:el]`, { strictOptions: true, hidden: true })
     for (const kw of keywords) subCmd.alias(`.${kw}`)
-    registerGenerateOptions(subCmd, info)
+    registerGenerateOptions(subCmd, info.params.options)
 
     return subCmd.action(async ({ session, options }, args) => {
       if (!session) return
@@ -335,7 +321,8 @@ export async function apply(ctx: Context, config: Config) {
       }
 
       if (options) {
-        options = await ctx.$.applyOptionEffects(session, options, info)
+        const err = await ctx.$.checkOptions(session, options, info)
+        if (err) return err
       }
 
       let resolvedArgs: ResolvedArgs
@@ -344,10 +331,16 @@ export async function apply(ctx: Context, config: Config) {
       } catch (e) {
         return ctx.$.handleResolveArgsError(session, e)
       }
-      const { imageInfos, texts } = resolvedArgs
 
+      if (session.memesApi?.shortcut) {
+        const s = session.memesApi.shortcut
+        resolvedArgs.texts = s.texts ?? []
+        Object.assign(options, s.options)
+      }
+
+      const { imageInfos, texts } = resolvedArgs
       const {
-        params_type: {
+        params: {
           min_images: minImages,
           max_images: maxImages,
           min_texts: minTexts,
@@ -372,7 +365,7 @@ export async function apply(ctx: Context, config: Config) {
       }
 
       if (!checkInRange(imageInfos.length, minImages, maxImages)) {
-        return config.silentShortcut && session.inShortcut
+        return config.silentShortcut && session.memesApi.shortcut
           ? undefined
           : session.text('memes-api.errors.image-number-mismatch', [
               formatRange(minImages, maxImages),
@@ -380,7 +373,7 @@ export async function apply(ctx: Context, config: Config) {
             ])
       }
       if (!checkInRange(texts.length, minTexts, maxTexts)) {
-        return config.silentShortcut && session.inShortcut
+        return config.silentShortcut && session.memesApi.shortcut
           ? undefined
           : session.text('memes-api.errors.text-number-mismatch', [
               formatRange(minTexts, maxTexts),
@@ -388,25 +381,20 @@ export async function apply(ctx: Context, config: Config) {
             ])
       }
 
-      let imagesAndInfos: ImagesAndInfos
+      let inpImgs: ImagesAndInfos
       try {
-        imagesAndInfos = await ctx.$.resolveImagesAndInfos(session, imageInfos)
+        inpImgs = await ctx.$.resolveImagesAndInfos(session, imageInfos)
       } catch (e) {
         return ctx.$.handleResolveImagesAndInfosError(session, e)
       }
-      const { images, userInfos } = imagesAndInfos
 
-      let img: Blob
+      let res: Blob
       try {
-        img = await ctx.$.api.renderMeme(key, {
-          images,
-          texts,
-          args: { ...(options ?? {}), user_infos: userInfos },
-        })
+        res = await ctx.$.uploadImgAndRenderMeme(session, info, texts, inpImgs, options)
       } catch (e) {
         return ctx.$.handleRenderError(session, e)
       }
-      return h.image(await img.arrayBuffer(), img.type)
+      return h.image(await res.arrayBuffer(), res.type)
     })
   }
 
