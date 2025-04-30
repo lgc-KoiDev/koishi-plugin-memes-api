@@ -191,6 +191,7 @@ export async function apply(ctx: Context, config: Config) {
   ctx.$.checkAndCountToGenerate = async (session) => {
     ;(session.memesApi ??= {}).inGenerateSubCommand = true
     const fatherRet = await session.execute('meme.generate', true)
+    delete session.memesApi.inGenerateSubCommand
     // father command should return empty array if inGenerateSubCommand is true
     return fatherRet.length ? fatherRet : undefined
   }
@@ -206,7 +207,7 @@ export async function apply(ctx: Context, config: Config) {
             type: 'data' as const,
             data: Buffer.from(x).toString('base64'),
           }))
-          .then((x) => sem(ctx.$.api.uploadImage, x))
+          .then((x) => sem(() => ctx.$.api.uploadImage(x)))
           .then((x) => x.image_id),
       ),
     )

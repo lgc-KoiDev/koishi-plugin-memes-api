@@ -37,31 +37,22 @@ _✨ 表情包制作插件调用 API 版 ✨_
 
 请安装插件后自行查看 Koishi 控制台内的帮助信息、插件注册的指令以及 I18N 项目
 
-<!--
-## 🗒️ TODO
+现已支持且 v2 版本仅支持 [meme-generator-rs](https://github.com/MemeCrafters/meme-generator-rs)
 
-~~_虽然但是，写在这里的不一定会做，我是大懒逼_~~
+v2 待办项（如果有你想要的功能，可以催催我）：
 
-- [x] 支持 AT 获取头像
-- [ ] 缓存渲好的 Meme
-- [ ] 内置 `meme-generator`
--->
+- [ ] 使用 `#xxx` 指定图片名
+- [ ] 实现图片操作指令
+- [ ] 表情包使用统计（数据库）
+- [ ] 表情包全局分群启用/禁用（配置文件 / 数据库）
+
+v1 将继续维护，但仅进行 Bug 修复，v2 功能不会 Backport 到 v1
 
 ## 💡 鸣谢
 
-### [meme-generator](https://github.com/MeetWq/meme-generator)
+### [meme-generator-rs](https://github.com/MemeCrafters/meme-generator-rs)
 
-- 本插件依赖的项目  
-  WQ 佬牛逼！
-
-### [NoneBot](https://nonebot.dev/)
-
-- **我们的 NoneBot 真是太强啦！**  
-  ![太强啦](https://s2.loli.net/2023/02/06/Hfwj67QoVAatexN.png)
-
-### Koishi 开发群的各位大佬
-
-- 群里的各位大佬们充分体现了我是大废物的事实（悲
+- 本插件依赖的项目
 
 ## 📞 联系
 
@@ -77,6 +68,13 @@ Telegram：[@lgc2333](https://t.me/lgc2333)
 感谢大家的赞助！你们的赞助将是我继续创作的动力！
 
 ## 📝 更新日志
+
+### 2.0.0
+
+- 初步支持 `meme-generator-rs`
+
+<details>
+<summary>v1 更新日志（点击展开）</summary>
 
 ### 1.0.3
 
@@ -97,6 +95,8 @@ Telegram：[@lgc2333](https://t.me/lgc2333)
 - 现在生成指令注册为 `meme.generate` 的子指令，可选参数以 Koishi 命令选项形式注册，需要放在参数最前
 - 添加了 `meme.random` 指令
 - 一些配置的添加与修改、某些用户体验的变更
+
+</details>
 
 <details>
 <summary>v0 更新日志（点击展开）</summary>

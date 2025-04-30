@@ -12,6 +12,40 @@ export { Config }
 
 export const name = 'memes-api'
 
+export const usage = `
+<style>
+.memes-api-usage {
+  background-color: var(--k-side-bg);
+  padding: 0.01rem 1rem;
+  border-radius: 4px;
+  border-left: 4px solid var(--k-color-primary);
+}
+
+.memes-api-usage a {
+  color: var(--k-color-primary-tint);
+}
+
+.memes-api-usage a:hover {
+  color: var(--primary);
+}
+</style>
+
+<div class="memes-api-usage">
+
+好消息，memes-api v2 已经初步支持 [meme-generator-rs](https://github.com/MemeCrafters/meme-generator-rs) 🎉  
+v2 版本将仅支持 meme-generator-rs，如要使用旧版 meme-generator，请回退到 v1 版本。
+
+查看 [部署文档](https://github.com/MemeCrafters/meme-generator-rs/wiki/%E6%9C%AC%E5%9C%B0%E5%AE%89%E8%A3%85) 部署新后端，  
+或者关注 [我的 Bilibili](https://space.bilibili.com/257534706)，视频教程将在不久后更新~
+
+目前插件还是处于 可能可以正常使用 的状态，  
+如果有 Bug 请积极 [反馈](https://github.com/lgc-KoiDev/koishi-plugin-memes-api/issues)，
+[这里](https://github.com/lgc-KoiDev/koishi-plugin-memes-api#-%E9%85%8D%E7%BD%AE--%E4%BD%BF%E7%94%A8) 也有一些暂缓实现的功能，如果真的很想要可以催催我！  
+感谢各位的支持与使用~~~！🤗❤️
+
+</div>
+`.trim()
+
 export const inject = {
   required: ['http'],
   optional: ['notifier'],
@@ -24,6 +58,7 @@ export interface MemePublic {
 export interface MemeInternal {
   $public: MemePublic
   notifier?: Notifier
+  api: MemeAPI
 }
 declare module 'koishi' {
   interface Context {
@@ -39,6 +74,8 @@ export async function apply(ctx: Context, config: Config) {
   // isolate new context for plugin internal use
   ctx = ctx.isolate('$')
   ctx.set('$', {})
+
+  ctx.$.api = new MemeAPI(ctx.http.extend(config.requestConfig))
 
   await Utils.apply(ctx, config)
 

@@ -78,29 +78,33 @@ memes-api:
     info: 关键词：{0}
 
 _config:
-  - $desc: 生成指令配置
-    enableShortcut: |-
-      是否注册类似原版 `memes` 插件的触发指令。  
-      例：`meme generate 5000兆 我去 洛天依` -> `5000兆 我去 洛天依`
-    shortcutUsePrefix: 表情生成快捷指令是否需要携带指令前缀。
-    silentShortcut: 是否禁用使用原版触发指令时的 参数错误提示。
-    moreSilent: 是否禁用使用原版触发指令时的 **所有** 错误提示。
-    autoUseDefaultTexts: 是否在用户未提供文字时自动使用默认文字。
-    autoUseSenderAvatarWhenOnlyOne: 是否在仅需求一张图片且用户未提供时自动使用发送者头像。
-    autoUseSenderAvatarWhenOneLeft: 是否在用户已提供图片但距离最少需求图片数仅差 1 时自动使用发送者头像。
+  - - - - $desc: 生成指令配置
+          enableShortcut: |-
+            是否注册类似原版 `memes` 插件的触发指令。  
+            例：`meme generate 5000兆 我去 洛天依` -> `5000兆 我去 洛天依`
+        - shortcutUsePrefix: 表情生成快捷指令是否需要携带指令前缀。
+          silentShortcut: 是否禁用使用原版触发指令时的 参数错误提示。
+      - moreSilent: 是否禁用使用原版触发指令时的 **所有** 错误提示。
+    - autoUseDefaultTexts: 是否在用户未提供文字时自动使用默认文字。
+      autoUseSenderAvatarWhenOnlyOne: 是否在仅需求一张图片且用户未提供时自动使用发送者头像。
+      autoUseSenderAvatarWhenOneLeft: 是否在用户已提供图片但距离最少需求图片数仅差 1 时自动使用发送者头像。
 
   - $desc: 表情列表配置
-    listSortBy:
+    listSortByRs:
       $desc: 表情排序方式。
       $inner:
-        - 默认
-        - 表情类型
         - 表情名
         - 关键词
+        - 关键词拼音
         - 创建时间
         - 修改时间
     listSortReverse: 是否倒序排列。
     listNewTimeDelta: 表情添加时间在该时间间隔（单位为天）以内时，在列表中添加新表情标识。
+    listNewStrategy:
+      $desc: 新表情标识的显示策略。
+      $inner:
+        - 创建时间
+        - 修改时间
     listTextTemplate: |-
       表情显示文字模板。  
       可用变量：`{index}`（序号）、`{key}`（表情名）、`{keywords}`（关键词）、`{shortcuts}`（快捷指令）、`{tags}`（标签）
@@ -122,4 +126,4 @@ _config:
       keepAlive: 是否保持连接。
       endpoint: 要连接的服务器地址。
       headers: 要附加的额外请求头。
-    getInfoConcurrency: 获取表情信息的并发数。
+    requestConcurrency: 请求并发数。

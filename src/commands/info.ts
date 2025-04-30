@@ -63,8 +63,8 @@ export async function apply(ctx: Context, config: Config) {
       }
 
       const name = searchRes[0]
-      if (!('name' in ctx.$.infos)) {
-        return session?.text('memes-api.errors.no-such-meme', [name])
+      if (!(name in ctx.$.infos)) {
+        return session?.text('memes-api.errors.no-such-meme', [query])
       }
       info = ctx.$.infos[name]
     }

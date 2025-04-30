@@ -14,7 +14,7 @@ declare module '../index' {
 }
 
 export async function apply(ctx: Context, config: Config) {
-  ctx.$.cmd = ctx.command('meme')
+  ctx.$.cmd = ctx.command('memes-api').alias('memes').alias('meme')
   await Generate.apply(ctx, config)
   await Shortcut.apply(ctx, config)
   await Random.apply(ctx, config)
