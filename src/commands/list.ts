@@ -36,6 +36,7 @@ export async function apply(ctx: Context, config: Config) {
         exclude_memes: notExistKeys,
         meme_properties: properties,
         sort_by: config.listSortByRs,
+        sort_reverse: config.listSortReverse,
         text_template: config.listTextTemplate,
         add_category_icon: config.listAddCategoryIcon,
       })
