@@ -121,10 +121,6 @@ _config:
     generateSubCommandCountToFather: 执行生成表情子指令时是否同时增加父指令的调用计数（对于 `rate-limit` 插件）。
     randomCommandCountToGenerate: 执行 `meme random` 指令时是否同时增加 `meme generate` 指令的调用计数（对于 `rate-limit` 插件）。
 
-  - $desc: 缓存配置
-    cacheDir: 插件图片缓存存放的目录。
-    keepCache: 插件会在每次加载时清空已缓存图片，启用该配置则插件不会自动清理缓存。
-
   - $desc: 请求配置
     requestConfig: &requestConfig
       timeout: 等待连接建立的最长时间。
