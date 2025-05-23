@@ -1,11 +1,11 @@
 commands:
-  meme:
+  memes-api:
     description: 制作各种沙雕表情包
-  meme.list:
+  memes-api.list:
     description: 查看表情列表
-  meme.info:
+  memes-api.info:
     description: 查看表情详情（支持模糊搜索及按标签搜索）
-  meme.generate:
+  memes-api.generate:
     description: |-
       生成表情包（每个表情生成指令会注册为本指令的子指令）
     usage: |-
@@ -17,7 +17,7 @@ commands:
       meme generate 5000兆 我去 洛天依
       meme generate rua -圆 @自己
       meme generate steam消息 #一大块小饼干 "Visual Studio Code"
-  meme.random:
+  memes-api.random:
     description: 生成随机表情
 
 memes-api:

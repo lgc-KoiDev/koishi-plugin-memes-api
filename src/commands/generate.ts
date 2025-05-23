@@ -306,7 +306,14 @@ export async function apply(ctx: Context, config: Config) {
 
     const subCmd: Command<never, never, [h[], ...string[]], any> =
       cmdGenerate.subcommand(`.${key} [args:el]`, { strictOptions: true, hidden: true })
-    for (const kw of keywords) subCmd.alias(`.${kw}`)
+    for (const kw of keywords) {
+      try {
+        subCmd.alias(`.${kw}`)
+      } catch (e) {
+        ctx.logger.warn(`Failed to register alias ${kw} for meme ${key}`)
+        ctx.logger.warn(e)
+      }
+    }
     registerGenerateOptions(subCmd, meme.params.options)
 
     return subCmd.action(async ({ session, options }, args) => {
