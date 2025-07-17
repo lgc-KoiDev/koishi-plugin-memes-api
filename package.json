@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-memes-api",
   "description": "表情包制作插件调用 API 版",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -50,7 +50,7 @@
     ]
   },
   "peerDependencies": {
-    "@satorijs/element": "^3.1.8",
+    "@satorijs/element": "*",
     "koishi": "^4.18.8"
   },
   "dependencies": {
