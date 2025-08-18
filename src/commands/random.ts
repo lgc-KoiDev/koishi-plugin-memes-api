@@ -13,7 +13,7 @@ export async function apply(ctx: Context, config: Config) {
   }
 
   subCmd.action(async ({ session, options }, args) => {
-    if (!session) return
+    if (!session || !session.userId) return
 
     if (config.randomCommandCountToGenerate) {
       const msg = await ctx.$.checkAndCountToGenerate(session)

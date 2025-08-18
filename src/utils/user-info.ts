@@ -49,7 +49,7 @@ export async function apply(ctx: Context, config: Config) {
           }
         }
 
-        const data = await bot.internal.getGroupMemberInfo(session.guildId, userId)
+        const data = await bot.internal.getGroupMemberInfo(session.guildId!, userId)
         return {
           url,
           userInfo: { name: data.card || data.nickname, gender: data.sex || 'unknown' },

@@ -87,6 +87,10 @@ export async function apply(ctx: Context, config: Config) {
   const generateSubCommands: Command[] = []
 
   ctx.$.resolveArgs = async (session, args) => {
+    if (!session.userId) {
+      throw new TypeError('userId not found in session')
+    }
+
     const imageInfos: ImageFetchInfo[] = []
     const texts: string[] = []
     const names: string[] = []
@@ -112,7 +116,7 @@ export async function apply(ctx: Context, config: Config) {
       if (!textBuffer.length) return
       const bufferTexts = splitArgString(textBuffer.join('')).filter((v) => {
         if (v === '自己' || v === '@自己') {
-          imageInfos.push({ userId: session.userId })
+          imageInfos.push({ userId: session.userId! })
           return false
         }
         if (v.startsWith('@')) {
@@ -317,7 +321,7 @@ export async function apply(ctx: Context, config: Config) {
     registerGenerateOptions(subCmd, meme.params.options)
 
     return subCmd.action(async ({ session, options }, args) => {
-      if (!session) return
+      if (!session || !session.userId) return
 
       if (config.generateSubCommandCountToFather) {
         const msg = await ctx.$.checkAndCountToGenerate(session)
