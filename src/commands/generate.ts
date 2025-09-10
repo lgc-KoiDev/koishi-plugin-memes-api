@@ -218,14 +218,7 @@ export async function apply(ctx: Context, config: Config) {
     const sem = pLimit(config.requestConcurrency)
     return Promise.all(
       images.map((x) =>
-        x
-          .arrayBuffer()
-          .then((x) => ({
-            type: 'data' as const,
-            data: Buffer.from(x).toString('base64'),
-          }))
-          .then((x) => sem(() => ctx.$.api.uploadImage(x)))
-          .then((x) => x.image_id),
+        sem(() => ctx.$.api.uploadImageMultipart(x)).then((x) => x.image_id),
       ),
     )
   }
