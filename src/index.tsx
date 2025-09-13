@@ -158,10 +158,21 @@ export async function apply(ctx: Context, config: Config) {
   ctx.set('memesApi', ctx.$.$public)
 
   const memeCount = Object.keys(ctx.$.infos).length
+  const minVersion = [0, 2, 2]
+  const versionMeets = Utils.isVersionMeets(ctx.$.apiVersion, minVersion)
   ctx.$.notifier?.update({
-    type: 'success',
+    type: versionMeets ? 'success' : 'warning',
     content: (
       <p>
+        {versionMeets ? (
+          <></>
+        ) : (
+          <>
+            警告：后端版本需大于等于 {minVersion.join('.')}
+            ，否则插件可能无法正常使用！
+            <br />
+          </>
+        )}
         插件初始化完毕，后端版本 {ctx.$.apiVersion}，共载入 {memeCount} 个表情。
       </p>
     ),

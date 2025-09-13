@@ -80,3 +80,13 @@ export function replaceBracketVar(v: string, res: RegExpExecArray): string {
     return `${l ?? ''}${extractContentPlaintext(resolved)}${r ?? ''}`
   })
 }
+
+export function isVersionMeets(version: string, minVersion: number[]): boolean {
+  const parts = version.split('.').map((v) => parseInt(v, 10))
+  for (let i = 0; i < minVersion.length; i++) {
+    const part = isNaN(parts[i]) ? 0 : (parts[i] ?? 0)
+    const minPart = minVersion[i] ?? 0
+    if (part < minPart) return false
+  }
+  return true
+}
