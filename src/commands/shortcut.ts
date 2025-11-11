@@ -63,7 +63,8 @@ export async function apply(ctx: Context, config: Config) {
       ? [
           ...Object.entries(shortcut.options).map(
             ([key, value]) =>
-              `${key.length > 1 ? '--' : '-'}${key} ${escapeArgs([replaceBracketVar(value, res)])}`,
+              `${key.length > 1 ? '--' : '-'}${key}` +
+              ` ${escapeArgs([replaceBracketVar(value, res)])}`,
           ),
         ].join(' ')
       : ''
