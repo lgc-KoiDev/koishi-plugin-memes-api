@@ -55,10 +55,10 @@
   },
   "dependencies": {
     "meme-generator-rs-api": "workspace:^",
-    "p-limit": "^7.1.1"
+    "p-limit": "^7.2.0"
   },
   "optionalDependencies": {
-    "@koishijs/plugin-help": "^2.4.5",
+    "@koishijs/plugin-help": "^2.4.6",
     "@koishijs/plugin-notifier": "^1.2.1",
     "koishi-plugin-adapter-onebot": "^6.8.0"
   }
